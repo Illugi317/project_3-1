@@ -73,12 +73,12 @@ def detect_lines(signal, center, sway, limit):
 def in_bounds(point, center, sway):
     lower_bound = center - sway
     top_bound = center + sway
-    return point >= lower_bound and point <= top_bound
+    return lower_bound <= point <= top_bound
 
 
-def plot_line(line, axs):
-    t_line_0 = np.full(len(line), 50)
-    axs.plot(line, t_line_0)
+def plot_line(each_line, axis):
+    t_line_0 = np.full(len(each_line), 50)
+    axis.plot(each_line, t_line_0)
 
 
 detect_peaks(acc_sum, 15)
