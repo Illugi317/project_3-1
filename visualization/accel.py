@@ -1,26 +1,76 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
+import pandas as pd
+import sys
+from os.path import dirname,abspath,join
+DIR_ROOT =dirname(dirname(abspath(__file__)))
+DIR_CSV=join(DIR_ROOT,"csv")
+file_path=join(DIR_CSV,"throw_overhead.csv")
 #9 10 11
 rows = []
-accl = []
-with open("throw_overhead.csv") as f:
-    reader = csv.reader(f)
-    for row in reader:
-        rows.append(row)
+acc_sum= []
+lin_sum=[]
+times=[]
+def read_csv(file_path):
+    try:
+        data = pd.read_csv(file_path, sep=",", encoding='utf-8')
+        return data
+    except Exception:
+        print("Something went wrong when trying to open the csv file!")
+        sys.exit(2)
+df=read_csv(file_path)
+# orix,oriy,oriz,gyrox,gyroy,gyroz,linerx,linery,linerz,accx,accy,accz,gravx,gravy,gravz,temp
+# DF columns
+linx=df.linerx
+liny=df.linery
+linz=df.linerz
+accx=df.accx
+accy=df.accy
+accz=df.accz
+for i in range(len(df)):
+    #lin_sum.append(abs(linx[i])+abs(liny[i])+abs(linz[i]))
+    lin_sum.append(abs(linx[i] + liny[i] + linz[i]))
+    #acc_sum.append(abs(accx[i])+abs(accy[i])+abs(accz[i]))
+    acc_sum.append(abs(accx[i] + accy[i] + accz[i]))
+    times.append(i)
 
-for row in rows:
-    accl.append((float(row[9]),float(row[10]),float(row[11])))
+def detect_lines(signal,center,sway,limit):
+    lines=[]
+    current_line=[]
+    for i in range(len(signal)):
+        point=signal[i]
+        #print(i)
+        if in_bounds(point,center,sway):
+            current_line.append(i)
+        elif len(current_line)>limit:
+            lines.append(current_line)
+            current_line=[]
+        else:
+            current_line=[]
+    if len(current_line) > limit:
+        lines.append(current_line)
+    return lines
+def in_bounds(point,center,sway):
+    lower_bound = center - sway
+    top_bound = center + sway
+    return point >=lower_bound and point<=top_bound
+def plot_line(line,axs):
+    t_line_0 = np.full(len(line), 50)
+    axs.plot(line, t_line_0)
+gravity_line=detect_lines(acc_sum,9,2,20)
+flying_line=detect_lines(acc_sum,1,1,5)
 
-#graph that bitch
-accl_sum = [abs(x[0]+x[1]+x[2]) for x in accl]
-lin_sum =  [abs(x[0]+x[1]+x[2]) for x in [(float(row[6]),float(row[7]),float(row[8])) for row in rows]]
 fig, axs = plt.subplots(2)
-t = np.arange(0.0, 2, 2/len(accl_sum))
 axs[0].set_title('Acceleration',fontsize=10)
-axs[0].plot(t,accl_sum)
+axs[0].plot(times,acc_sum)
 axs[1].set_title('Linear Acceleration',fontsize=10)
-axs[1].plot(t,lin_sum)
-
+axs[1].plot(times,lin_sum)
+for line in gravity_line:
+    plot_line(line,axs[0])
+    b=2
+for line in flying_line:
+    plot_line(line,axs[0])
+    b=2
 
 plt.show()
