@@ -52,19 +52,32 @@ def detect_peaks(data, h):
     plt.show()
 
 
-def detect_lines(signal, center, sway, limit):
+def detect_lines(signal, center, sway, limit,inter_sway):
     lines = []
     current_line = []
+    last_point=0
     for i in range(len(signal)):
         point = signal[i]
         # print(i)
         if in_bounds(point, center, sway):
-            current_line.append(i)
+            if last_point ==0:
+                current_line.append(i)
+                last_point=point
+            else:
+                if in_bounds(point,last_point,inter_sway):
+                    current_line.append(i)
+                    last_point=point
+                elif len(current_line) > limit:
+                    lines.append(current_line)
+                    current_line = []
+                    last_point=0
         elif len(current_line) > limit:
             lines.append(current_line)
             current_line = []
+            last_point = 0
         else:
             current_line = []
+            last_point = 0
     if len(current_line) > limit:
         lines.append(current_line)
     return lines
@@ -83,8 +96,8 @@ def plot_line(each_line, axis):
 
 detect_peaks(acc_sum, 15)
 
-gravity_line = detect_lines(acc_sum, 9, 2, 20)
-flying_line = detect_lines(acc_sum, 1, 1, 5)
+gravity_line = detect_lines(acc_sum, 9, 2, 20,0.75)
+flying_line = detect_lines(acc_sum, 1, 1, 5,1.4)
 
 fig, axs = plt.subplots(2)
 axs[0].set_title('Acceleration', fontsize=10)
