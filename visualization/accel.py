@@ -4,7 +4,7 @@ from os.path import dirname, abspath, join
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import numpy as np
-
+import statistics
 DIR_ROOT = dirname(dirname(abspath(__file__)))
 DIR_CSV = join(DIR_ROOT, "csv")
 file_path = join(DIR_CSV, "throw_overhead.csv")
@@ -53,7 +53,7 @@ def detect_peaks(data, h):
     #plt.show()
 
 
-def detect_lines(signal, center, sway, limit,inter_sway):
+def detect_lines(signal, center, sway, limit,inter_sway,std_limit):
     lines = []
     current_line = []
     last_point=0
@@ -69,18 +69,21 @@ def detect_lines(signal, center, sway, limit,inter_sway):
                     current_line.append(i)
                     last_point=point
                 elif len(current_line) > limit:
-                    lines.append(current_line)
+                    if analyze_lines(signal,current_line,std_limit):
+                        lines.append(current_line)
                     current_line = []
                     last_point=0
         elif len(current_line) > limit:
-            lines.append(current_line)
+            if analyze_lines(signal, current_line,std_limit):
+                lines.append(current_line)
             current_line = []
             last_point = 0
         else:
             current_line = []
             last_point = 0
     if len(current_line) > limit:
-        lines.append(current_line)
+        if analyze_lines(signal, current_line,std_limit):
+            lines.append(current_line)
     return lines
 
 
@@ -134,10 +137,19 @@ def find_times_of_throw_individual(grav_lines,peaks):
     higher=[x for x in peaks if x>=last_point]
     return min(higher)
 peak_times,peak_heights = detect_peaks(acc_sum, 15)
-
-gravity_line = detect_lines(acc_sum, 8, 3, 10,2)
-flying_line = detect_lines(acc_sum, 1, 1, 4,1.5)
-
+def analyze_lines(points,line,std_limit):
+    values=[]
+    for i in line:
+        values.append(points[i])
+    std=statistics.stdev(values)
+    summm=sum(values)
+    mean=summm/len(values)
+    if std<std_limit:
+        return True
+    else:
+        return False
+gravity_line = detect_lines(acc_sum, 8, 3, 10,2,2)
+flying_line = detect_lines(acc_sum, 1, 1, 4,2,0.4)
 peak_times_throw=find_times_of_throw(flying_line,peak_times,5)
 throw_times=find_times_of_throw_individual(gravity_line,peak_times)
 fig, axs = plt.subplots(2)
