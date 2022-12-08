@@ -190,7 +190,7 @@ def load_file():
     Loads the IMU data and plots everything
     """
     global current_throws
-    filename = filedialog.askopenfilename(initialdir="/", title="Select the IMU data csv!")
+    filename = filedialog.askopenfilename(title="Select the IMU data csv!")
     image_path, throws = detect_throws_from_data(filename, "throw_data")
     current_throws = throws
     update_main_image(image_path)
