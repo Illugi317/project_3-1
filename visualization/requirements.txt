@@ -1,0 +1,6 @@
+Pillow == 9.3.0
+cv2-rgb == 1.0.0
+numpy == 1.23.3
+scipy == 1.9.2
+matplotlib == 3.6.2
+tk
