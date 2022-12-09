@@ -164,6 +164,22 @@ def detect_throws_from_data(path, name):
         else:
             return -1
 
+
+    def next_peak_is_part_of_first_peak(first_peak,second_peak):
+        first_val = acc_sum[first_peak]
+        second_val = acc_sum[second_peak]
+        if second_val < first_val:   # If the second peak is smaller than first
+            left_bound = first_peak
+            right_bound = second_peak+3
+            if acc_sum[right_bound] < acc_sum[left_bound]:   # If the entire slope has a downwards trend
+                for i in range(right_bound-left_bound):
+                    if acc_sum[left_bound+i] > first_val:   # If all values on the slope are smaller than first
+                        return False
+                return True
+            else:
+                return False
+        else:
+            return False
     def find_times_of_throw(fly_lines, peaks, peak_distance):
         """
         :param fly_lines: All detected lines of flight of cube
@@ -178,8 +194,15 @@ def detect_throws_from_data(path, name):
             start = line[0]  # START OF FLAT LINE
             end = line[-1]  # END OF FLAT LINE
             closest_peak = get_closest_peak(start, peaks)  # CLOSEST PEAK BEFORE THE LINE
-            next_peak = get_next_peak(end, peaks)  # NEXT PEAK AFTER THE LINE
-            if closest_peak == last_peak:  # IF THE NEXT PEAK OF THE LAST THROW IS THE SAME PEAK THAT WE DETECT NOW, IGNORE
+            curr_next = get_next_peak(end,peaks) # NEXT PEAK AFTER THE LINE
+            next_is_good = True
+            while next_is_good:
+                if next_peak_is_part_of_first_peak(closest_peak,curr_next):
+                    curr_next = get_next_peak(curr_next,peaks) # FAKE ASS NEXT PEAK FOUND
+                else:
+                    next_peak =curr_next
+                    next_is_good = False # LEGIT NEXT PEAK FOUND
+            if closest_peak == last_peak or next_peak_is_part_of_first_peak(last_peak,closest_peak):  # IF THE NEXT PEAK OF THE LAST THROW IS THE SAME PEAK THAT WE DETECT NOW, IGNORE
                 continue  # THIS PART IS BASICALLY BOUNCE DETECTION
             if closest_peak == -1:  # IF CLOSEST PEAK DOESNT EXIST THEN CONTINUE
                 continue
@@ -217,6 +240,12 @@ def detect_throws_from_data(path, name):
             if start<l_point<end:
                 return True
         return False
+
+
+    def plot_all_peaks(peak_times,peak_val,ax):
+        vals = peak_val.get('peak_heights')
+        for i in range(len(peak_times)):
+            ax.plot(peak_times[i],vals[i],"x")
     def detect_throws_on_floor(throws,grav_lines):
         for t in throws:
             time = t.time
@@ -226,7 +255,6 @@ def detect_throws_from_data(path, name):
             next_time = find_higher(time,other_times)
             if there_is_a_line_between(time,next_time,grav_lines):
                 t.is_on_floor()
-    peak_times, peak_heights = detect_peaks(acc_sum, 15)
 
     def analyze_lines(points, line, std_limit):
         """
@@ -244,19 +272,23 @@ def detect_throws_from_data(path, name):
         else:
             return False
 
+    peak_times, peak_heights = detect_peaks(acc_sum, 5)
+    print(f"I detected peaks + {len(peak_times)}")
     gravity_lines = detect_lines(acc_sum, 8, 3, 10, 2, 2)
-    flying_line = detect_lines(acc_sum, 1, 1, 4, 3, 0.5)
-
-    throws = find_times_of_throw(flying_line, peak_times, 5)
+    flying_line = detect_lines(acc_sum, center = 1.5, sway = 1.5, limit = 15, inter_sway = 3,std_limit =  0.7)
+    print(f"I detected lines + {len(flying_line)}")
+    throws = find_times_of_throw(flying_line, peak_times, 15)
+    peak_times, peak_heights = detect_peaks(acc_sum, 15)
 
     if len(throws) == 0:
         flying_line = detect_lines(acc_sum, 1.5, 1.5, 2, 2, 1)
         throws = find_times_of_throw(flying_line, peak_times, 5)
+    print("I detected throws")
     detect_throws_on_floor(throws,gravity_lines)
     fig, axs = plt.subplots()
     axs.set_title(name, fontsize=10)
     axs.plot(times, acc_sum)
-
+    plot_all_peaks(peak_times,peak_heights,axs)
     plot_throws(throws, axs)
     for line in gravity_lines:
         plot_line(line, axs,50)
@@ -267,8 +299,9 @@ def detect_throws_from_data(path, name):
     return path_to_file,throws
 if __name__ == '__main__':
     paths = []
-    names = ['throw1.csv', 'throw2.csv', 'throw3.csv', 'throw4.csv', 'throw_overhead.csv']
+    names = ['throw_distance_under1.8.csv']
     for n in names:
-        path = join(DIR_CSV, n)
+        path = join(DIR_CSV, "csv_distance")
+        path = join(path,n)
         saving_file = join(DIR_IMG,n)
         detect_throws_from_data(path, saving_file)
