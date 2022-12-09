@@ -46,7 +46,7 @@ def solve(path):
     accx = df.accx
     accy = df.accy
     accz = df.accz
-    first_vals =  [0.59,9.15,-3.47]
+    first_vals =  [gravx[0],gravy[0],gravz[0]]
     square_root = (sqrt(pow(first_vals[0],2)+pow(first_vals[1],2)+pow(first_vals[2],2)))
     A_matrix = [i/square_root for i in first_vals]
     G_matrix = [0,0,-1]
@@ -79,6 +79,8 @@ def solve(path):
     lin = [linx[0],liny[0],linz[0]]
     linear_forces = np.dot(rotation_matrix,lin)
     acc = [accx[0],accy[0],accz[0]]
+    #r_acc = sqrt(pow(acc[0], 2) + pow(acc[1], 2) + pow(acc[2], 2))
+    #acc = [i/r_acc for i in acc]
     acceleration_forces = np.dot(rotation_matrix,acc)
     what_now = np.dot(rotation_matrix,r_Norm)
     b=2
