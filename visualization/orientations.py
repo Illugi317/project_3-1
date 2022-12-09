@@ -40,6 +40,12 @@ def solve(path):
     gravx = df.gravx
     gravy = df.gravy
     gravz = df.gravz
+    linx = df.linerx
+    liny = df.linery
+    linz = df.linerz
+    accx = df.accx
+    accy = df.accy
+    accz = df.accz
     first_vals =  [0.59,9.15,-3.47]
     square_root = (sqrt(pow(first_vals[0],2)+pow(first_vals[1],2)+pow(first_vals[2],2)))
     A_matrix = [i/square_root for i in first_vals]
@@ -70,6 +76,10 @@ def solve(path):
     rotation = [orix[0],oriy[0],oriz[0]]
     r_sqrt = (sqrt(pow(rotation[0], 2) + pow(rotation[1], 2) + pow(rotation[2], 2)))
     r_Norm = [i / r_sqrt for i in rotation]
+    lin = [linx[0],liny[0],linz[0]]
+    linear_forces = np.dot(rotation_matrix,lin)
+    acc = [accx[0],accy[0],accz[0]]
+    acceleration_forces = np.dot(rotation_matrix,acc)
     what_now = np.dot(rotation_matrix,r_Norm)
     b=2
 def quat_to_ypr(q):
