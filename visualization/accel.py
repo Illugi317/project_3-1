@@ -56,7 +56,7 @@ def detect_throws_from_data(path, name):
         peaks, _ = find_peaks(data, height=h)
         return peaks, _
 
-    def detect_lines(signal, center, sway, limit, inter_sway, std_limit):
+    def detect_lines(signal, center, sway, limit):
         """
         :param signal: The entire data we get from the accelerometer
         :param center: The center value of lines we want to find
@@ -77,24 +77,16 @@ def detect_throws_from_data(path, name):
                     current_line.append(i)
                     last_point = point
                 else:
-                    if in_bounds(point, last_point, inter_sway):
-                        current_line.append(i)
-                        last_point = point
-                    elif len(current_line) > limit:
-                        if analyze_lines(signal, current_line, std_limit):
-                            lines.append(current_line)
-                        current_line = []
-                        last_point = 0
+                    current_line.append(i)
+                    last_point = point
             elif len(current_line) > limit:
-                if analyze_lines(signal, current_line, std_limit):
-                    lines.append(current_line)
+                lines.append(current_line)
                 current_line = []
                 last_point = 0
             else:
                 current_line = []
                 last_point = 0
         if len(current_line) > limit:
-            if analyze_lines(signal, current_line, std_limit):
                 lines.append(current_line)
         return lines
 
@@ -166,18 +158,23 @@ def detect_throws_from_data(path, name):
 
 
     def next_peak_is_part_of_first_peak(first_peak,second_peak):
+        if first_peak == -1 or second_peak == -1:
+            return False
         first_val = acc_sum[first_peak]
         second_val = acc_sum[second_peak]
         if second_val < first_val:   # If the second peak is smaller than first
             left_bound = first_peak
-            right_bound = second_peak+3
-            if acc_sum[right_bound] < acc_sum[left_bound]:   # If the entire slope has a downwards trend
-                for i in range(right_bound-left_bound):
-                    if acc_sum[left_bound+i] > first_val:   # If all values on the slope are smaller than first
+            right_bound = second_peak+1
+            last_val = first_val
+              # If the entire slope has a downwards trend
+            for i in range(right_bound-left_bound):
+                current_val = acc_sum[left_bound+i]
+                if left_bound+i !=second_peak:
+                    if last_val >= current_val:   # If all values on the slope are smaller than first
+                        last_val=current_val
+                    else:
                         return False
-                return True
-            else:
-                return False
+            return True
         else:
             return False
     def find_times_of_throw(fly_lines, peaks, peak_distance):
@@ -190,7 +187,10 @@ def detect_throws_from_data(path, name):
         """
         throws = list()
         last_peak = -1  # DUMB VALUE
+        processed=0
         for line in fly_lines:
+            print(f"I processed {processed} line")
+            processed +=1
             start = line[0]  # START OF FLAT LINE
             end = line[-1]  # END OF FLAT LINE
             closest_peak = get_closest_peak(start, peaks)  # CLOSEST PEAK BEFORE THE LINE
@@ -206,7 +206,7 @@ def detect_throws_from_data(path, name):
                 continue  # THIS PART IS BASICALLY BOUNCE DETECTION
             if closest_peak == -1:  # IF CLOSEST PEAK DOESNT EXIST THEN CONTINUE
                 continue
-            if start - closest_peak <= peak_distance:  # IF THE DISTANCE BETWEEN START OF LINE AND CLOSEST PEAK IS CLOSE ENOUGH BASED ON THE MEASURE WE DID
+            if start - closest_peak <= peak_distance and next_peak - end <= peak_distance:  # IF THE DISTANCE BETWEEN START OF LINE AND CLOSEST PEAK IS CLOSE ENOUGH BASED ON THE MEASURE WE DID
                 time_of_throw = closest_peak
                 acc_val = acc_sum[time_of_throw]
                 new_throw = Throw(acc_val,line,time_of_throw)
@@ -271,17 +271,35 @@ def detect_throws_from_data(path, name):
             return True
         else:
             return False
-
+    def filter_lines(lines,maximal_derivation):
+        filtered = []
+        for line in lines:
+            shorted_line = line[15:]
+            vals=[]
+            for i in shorted_line:
+                vals.append(acc_sum[i])
+            mean = statistics.mean(vals)
+            maximal = max(vals)
+            minimal = min(vals)
+            positive_diff = maximal-mean
+            minus_diff = mean-minimal
+            if positive_diff < maximal_derivation and minus_diff < maximal_derivation:
+                filtered.append(line)
+            #print(f" Mean value of line is at {mean}")
+           # print(f"The maximal positive difference is {maximal-mean}")
+            #print(f"The maximal negative difference is {mean-minimal}")
+        return filtered
     peak_times, peak_heights = detect_peaks(acc_sum, 5)
     print(f"I detected peaks + {len(peak_times)}")
-    gravity_lines = detect_lines(acc_sum, 8, 3, 10, 2, 2)
-    flying_line = detect_lines(acc_sum, center = 1.5, sway = 1.5, limit = 15, inter_sway = 3,std_limit =  0.7)
+    gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 30)
+    flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 15)
+
+    gravity_lines = filter_lines(gravity_lines,0.4)
     print(f"I detected lines + {len(flying_line)}")
     throws = find_times_of_throw(flying_line, peak_times, 15)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
-
     if len(throws) == 0:
-        flying_line = detect_lines(acc_sum, 1.5, 1.5, 2, 2, 1)
+        flying_line = detect_lines(acc_sum, 1.5, 1.5, 5)
         throws = find_times_of_throw(flying_line, peak_times, 5)
     print("I detected throws")
     detect_throws_on_floor(throws,gravity_lines)
@@ -299,7 +317,8 @@ def detect_throws_from_data(path, name):
     return path_to_file,throws
 if __name__ == '__main__':
     paths = []
-    names = ['throw_distance_under1.8.csv']
+    names = ['throw_distance_chest2.csv','throw_distance_chest4.csv','throw_distance_overhead2.5.csv'
+        ,'throw_distance_overhead4.csv','throw_distance_under1.8.csv','throw_distance_under3.2.csv']
     for n in names:
         path = join(DIR_CSV, "csv_distance")
         path = join(path,n)
