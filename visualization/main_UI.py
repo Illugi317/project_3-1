@@ -1,9 +1,14 @@
-from tkinter import *
-from PIL import ImageTk, Image
-from tkinter import filedialog
-from accel import detect_throws_from_data
 import os
-import cv2, numpy as np
+from os.path import dirname, abspath
+from tkinter import *
+from tkinter import filedialog
+
+import cv2
+import numpy as np
+from PIL import ImageTk, Image
+from accel import detect_throws_from_data
+
+DIR_ROOT = dirname(dirname(abspath(__file__)))
 
 
 def makeBasic():
@@ -22,7 +27,7 @@ def makeBasic():
     white_image = ImageTk.PhotoImage(Image.fromarray(white))
     LeftBox = Canvas(root)
     LeftBox.grid(row=1, column=0, columnspan=6)
-    text = Text(LeftBox, width=60,height=20)
+    text = Text(LeftBox, width=60, height=20)
     text.pack()
     text.insert(INSERT, "Load IMU data to begin!")
     text.config(state=DISABLED)
@@ -75,7 +80,7 @@ def update_left(*args):
         List.config(bg="#CFCF2F")
         List.pack()
         LeftBox.grid(row=1, column=0, columnspan=6)
-        text = Text(LeftBox, width=60,height=20)
+        text = Text(LeftBox, width=60, height=20)
         text.pack()
         current_throw_title = var.get()
         current_throw = current_throws[int(current_throw_title[-1]) - 1]
@@ -84,6 +89,7 @@ def update_left(*args):
         text.config(state=DISABLED)
         left_text = text
         give_legend()
+
 
 def give_legend():
     global LeftBox
@@ -95,6 +101,8 @@ def give_legend():
              "The lines at height 50 are highlighting the times when we detected that the die was not moving, " \
              "most probably laying on the floor \n"
     picture_legend.insert(INSERT, legend)
+
+
 def give_left_text(current_throw):
     """
     This method returns the text containing all data we have on a throw
@@ -190,7 +198,7 @@ def load_file():
     Loads the IMU data and plots everything
     """
     global current_throws
-    filename = filedialog.askopenfilename(title="Select the IMU data csv!")
+    filename = filedialog.askopenfilename(initialdir=DIR_ROOT, title="Select the IMU data csv!")
     image_path, throws = detect_throws_from_data(filename, "throw_data")
     current_throws = throws
     update_main_image(image_path)
