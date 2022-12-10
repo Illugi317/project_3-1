@@ -156,7 +156,9 @@ def detect_throws_from_data(path, name):
         else:
             return -1
 
-
+    def get_peaks_between_including_second(first,second):
+        qualifiers = [i for i in peak_times if i >first and i <=second]
+        return qualifiers
     def next_peak_is_part_of_first_peak(first_peak,second_peak):
         if first_peak == -1 or second_peak == -1:
             return False
@@ -166,10 +168,11 @@ def detect_throws_from_data(path, name):
             left_bound = first_peak
             right_bound = second_peak+1
             last_val = first_val
+            values_to_ignore = get_peaks_between_including_second(first_peak,second_peak)
               # If the entire slope has a downwards trend
             for i in range(right_bound-left_bound):
                 current_val = acc_sum[left_bound+i]
-                if left_bound+i !=second_peak:
+                if left_bound+i not in values_to_ignore:
                     if last_val >= current_val:   # If all values on the slope are smaller than first
                         last_val=current_val
                     else:
@@ -274,7 +277,8 @@ def detect_throws_from_data(path, name):
     def filter_lines(lines,maximal_derivation):
         filtered = []
         for line in lines:
-            shorted_line = line[15:]
+            length = len(line)
+            shorted_line = line[12:length-3]
             vals=[]
             for i in shorted_line:
                 vals.append(acc_sum[i])
@@ -294,7 +298,9 @@ def detect_throws_from_data(path, name):
     gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 30)
     flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 15)
 
-    gravity_lines = filter_lines(gravity_lines,0.4)
+    gravity_lines = filter_lines(gravity_lines,0.5)
+
+
     print(f"I detected lines + {len(flying_line)}")
     throws = find_times_of_throw(flying_line, peak_times, 15)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
