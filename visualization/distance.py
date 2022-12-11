@@ -18,9 +18,11 @@ import sys
 def throw_distance(df, index1, index2, index_max):
     y, x = get_accel(df, index1, index2)
     initial_vel = get_init_vel(y, x)
-    initial_vel = initial_vel**2
-    distance = math.sin(2*getangle(df, index_max))*initial_vel
-    distance = distance/9.80665
+    angle = getangle(df, index_max)
+    grav = 9.80665
+    height = 1.75
+    distance = initial_vel * math.cos(angle)*(initial_vel*math.sin(angle) + math.sqrt((initial_vel * math.sin(angle))**2)+2*grav*height)
+    distance = distance/grav
     return distance
 
 """
