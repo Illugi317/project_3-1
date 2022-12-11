@@ -8,7 +8,7 @@ from os import makedirs
 import matplotlib.pyplot as plt
 import numpy as np
 import statistics
-from throws import Throw
+from classes import Throw
 from math import sqrt
 from numpy import arccos
 DIR_ROOT = dirname(dirname(abspath(__file__)))

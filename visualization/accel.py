@@ -6,7 +6,8 @@ from os import makedirs
 import matplotlib.pyplot as plt
 import numpy as np
 import statistics
-from throws import Throw
+from classes import Throw,Roll
+from rotations import detect_rolls
 DIR_ROOT = dirname(dirname(abspath(__file__)))
 DIR_VISUAL = join(DIR_ROOT,"visualization")
 DIR_IMG = join(DIR_VISUAL,"images")
@@ -249,6 +250,19 @@ def detect_throws_from_data(path, name):
         vals = peak_val.get('peak_heights')
         for i in range(len(peak_times)):
             ax.plot(peak_times[i],vals[i],"x")
+
+
+
+    def detect_rolls_in_air(throws,rolls):
+        for t in throws:
+            start_time = t.time
+            end_time = t.fly_line[-1]
+            roll_count = 0
+            for r in rolls:
+                time = r.time
+                if start_time <= time <= end_time:
+                    roll_count+=1
+            t.set_air_rolls(roll_count)
     def detect_throws_on_floor(throws,grav_lines):
         for t in throws:
             time = t.time
@@ -293,7 +307,7 @@ def detect_throws_from_data(path, name):
            # print(f"The maximal positive difference is {maximal-mean}")
             #print(f"The maximal negative difference is {mean-minimal}")
         return filtered
-    peak_times, peak_heights = detect_peaks(acc_sum, 5)
+    peak_times, peak_heights = detect_peaks(acc_sum, 9)
     print(f"I detected peaks + {len(peak_times)}")
     gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 30)
     flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 15)
@@ -305,10 +319,15 @@ def detect_throws_from_data(path, name):
     throws = find_times_of_throw(flying_line, peak_times, 15)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
     if len(throws) == 0:
-        flying_line = detect_lines(acc_sum, 1.5, 1.5, 5)
-        throws = find_times_of_throw(flying_line, peak_times, 5)
+        flying_line = detect_lines(acc_sum, 1.5, 1.5, 10)
+        throws = find_times_of_throw(flying_line, peak_times, 8)
     print("I detected throws")
     detect_throws_on_floor(throws,gravity_lines)
+    for t in throws:
+        t.print()
+    rolls = detect_rolls(df)
+
+    detect_rolls_in_air(throws,rolls)
     fig, axs = plt.subplots()
     axs.set_title(name, fontsize=10)
     axs.plot(times, acc_sum)
@@ -323,10 +342,11 @@ def detect_throws_from_data(path, name):
     return path_to_file,throws
 if __name__ == '__main__':
     paths = []
-    names = ['throw_distance_chest2.csv','throw_distance_chest4.csv','throw_distance_overhead2.5.csv'
-        ,'throw_distance_overhead4.csv','throw_distance_under1.8.csv','throw_distance_under3.2.csv']
+    #names = ['throw_distance_chest2.csv','throw_distance_chest4.csv','throw_distance_overhead2.5.csv'
+       # ,'throw_distance_overhead4.csv','throw_distance_under1.8.csv','throw_distance_under3.2.csv']
+    names = ['throw_roll_on_ground.csv']
     for n in names:
-        path = join(DIR_CSV, "csv_distance")
+        path = join(DIR_CSV, "csv_new_throws")
         path = join(path,n)
         saving_file = join(DIR_IMG,n)
         detect_throws_from_data(path, saving_file)
