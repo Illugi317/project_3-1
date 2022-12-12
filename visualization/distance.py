@@ -7,7 +7,7 @@ import pandas as pd
 import sys
 
 #df1 = pd.read_csv(r'C:\Users\Stijn\Desktop\project_3-1-main\csv\throw1.csv', sep=",", encoding='utf-8')
-
+#df1 = pd.read_csv(r'C:\Users\Stijn\Desktop\project_3-1-main\csv\csv_distance\throw_distance_chest4.csv', sep=",", encoding='utf-8')
 """
     :param df: entire imu data dataframe
     :param index1: index of when the throw starts
@@ -15,8 +15,8 @@ import sys
     :param index_max: index when the acceleration is at its peak
     :return:
 """
-def throw_distance(df, index1, index_max, time_of_flight):
-    y, x = get_accel(df, index1, index_max)
+def throw_distance(df, index_max, time_of_flight):
+    y, x = get_accel(df, index_max)
     initial_vel = get_init_vel(y, x)
     angle = getangle(df, index_max)
     print(angle)
@@ -54,9 +54,11 @@ def get_init_vel(acc, x):
     :param index2: index of when acceleration no longer needs to be recorded
     :return:
 """
-def get_accel(df, index1, index2):
+def get_accel(df, index2):
     acc = []
     xaxis = []
+    index1 = get_start_throw(df, index2)
+
     count = index2 - index1
     x_counter = 0.00
     for x in range(count):
@@ -68,8 +70,24 @@ def get_accel(df, index1, index2):
         xaxis.append(x_counter)
     return acc, xaxis
 
-#distance = throw_distance(df1,45,55,52)
+"""
+    :param df: entire imu data dataframe
+    :param index: index of throw at maximum acceleration
+    :return:
+"""
+
+def get_start_throw(df, index):
+    current_accel = 100
+    index1 = index
+    while current_accel > 9.80665:
+        current_accel = math.sqrt(df.accx[index1] ** 2 + df.accy[index1] ** 2 + df.accz[index1] ** 2)
+        index1 = index1 - 1
+    return index1
+
+
+#distance = throw_distance(df1,325,36)
 
 #print(distance)
+
 
 
