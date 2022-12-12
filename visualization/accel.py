@@ -307,16 +307,16 @@ def detect_throws_from_data(path, name):
            # print(f"The maximal positive difference is {maximal-mean}")
             #print(f"The maximal negative difference is {mean-minimal}")
         return filtered
-    peak_times, peak_heights = detect_peaks(acc_sum, 9)
+    peak_times, peak_heights = detect_peaks(acc_sum, 14)
     print(f"I detected peaks + {len(peak_times)}")
     gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 30)
-    flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 15)
+    flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 25)
 
     gravity_lines = filter_lines(gravity_lines,0.5)
 
 
     print(f"I detected lines + {len(flying_line)}")
-    throws = find_times_of_throw(flying_line, peak_times, 15)
+    throws = find_times_of_throw(flying_line, peak_times, 75)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
     if len(throws) == 0:
         flying_line = detect_lines(acc_sum, 1.5, 1.5, 10)
