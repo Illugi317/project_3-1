@@ -16,11 +16,14 @@ import sys
     :return:
 """
 def throw_distance(df, index1, index2, index_max):
-    y, x = get_accel(df, index1, index2)
+    y, x = get_accel(df, index1, index_max)
     initial_vel = get_init_vel(y, x)
     angle = getangle(df, index_max)
+    print(angle)
     grav = 9.80665
-    height = 1.75
+    time_of_flight = time_of_flight*0.0185
+    height = (time_of_flight*(time_of_flight * grav - 2*initial_vel*math.sin(angle)))/2
+    print(height)
     distance = initial_vel * math.cos(angle)*(initial_vel*math.sin(angle) + math.sqrt((initial_vel * math.sin(angle))**2)+2*grav*height)
     distance = distance/grav
     return distance
@@ -61,7 +64,7 @@ def get_accel(df, index1, index2):
         k = math.sqrt(df.accx[index1+x-1]**2+df.accy[index1+x-1]**2+df.accz[index1+x-1]**2)-9.80665
         acc.append(k)
         # time value is currently at 0.1 which mean the IMU would send the data 0.1 seconds apart, change this value if you have a more accurate time stamp.
-        x_counter = x_counter + 0.1
+        x_counter = x_counter + 0.0185
         xaxis.append(x_counter)
     return acc, xaxis
 
