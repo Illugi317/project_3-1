@@ -77,11 +77,19 @@ def get_accel(df, index2):
 """
 
 def get_start_throw(df, index):
-    current_accel = 100
+    abs_current_accel = 100
     index1 = index
-    while current_accel > 9.80665:
-        current_accel = math.sqrt(df.accx[index1] ** 2 + df.accy[index1] ** 2 + df.accz[index1] ** 2)
+    current_accel = df.accx[index1] ** 2 + df.accy[index1] ** 2 + df.accz[index1]
+
+    while abs_current_accel > 9.80665:
+        last_accel = df.accx[index1] + df.accy[index1] + df.accz[index1]
+        abs_current_accel = math.sqrt(df.accx[index1] ** 2 + df.accy[index1] ** 2 + df.accz[index1] ** 2)
         index1 = index1 - 1
+        current_accel = df.accx[index1] + df.accy[index1] + df.accz[index1]
+        if current_accel > 0 and last_accel < 0:
+            return last_accel
+        if current_accel < 0 and last_accel > 0:
+            return last_accel
     return index1
 
 
