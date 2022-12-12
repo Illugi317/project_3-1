@@ -111,6 +111,7 @@ def give_left_text(current_throw):
                  f"The maximal acceleration value achieved was {current_throw.peak_val} \n" \
                  f"The throw {'did' if current_throw.THROW_ON_FLOOR else 'did not'} land on the floor \n" \
                  f"The time of flight was equal to {current_throw.tof} timesteps \n" \
+                 f"The angle of the throw was about {current_throw.angle} degrees \n"\
                  f"The die rolled about {current_throw.air_rolls} times in the air"
     return throw_data
 

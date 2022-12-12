@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import statistics
 from classes import Throw,Roll
+from distance import getangle
 from rotations import detect_rolls
 DIR_ROOT = dirname(dirname(abspath(__file__)))
 DIR_VISUAL = join(DIR_ROOT,"visualization")
@@ -263,6 +264,12 @@ def detect_throws_from_data(path, name):
                 if start_time <= time <= end_time:
                     roll_count+=1
             t.set_air_rolls(roll_count)
+
+    def detect_throw_angle(throws):
+        for t in throws:
+            time = t.time
+            angle = getangle(df,time)
+            t.set_angle(angle)
     def detect_throws_on_floor(throws,grav_lines):
         for t in throws:
             time = t.time
@@ -307,7 +314,7 @@ def detect_throws_from_data(path, name):
            # print(f"The maximal positive difference is {maximal-mean}")
             #print(f"The maximal negative difference is {mean-minimal}")
         return filtered
-    peak_times, peak_heights = detect_peaks(acc_sum, 14)
+    peak_times, peak_heights = detect_peaks(acc_sum, 8)
     print(f"I detected peaks + {len(peak_times)}")
     gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 30)
     flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 25)
@@ -328,6 +335,8 @@ def detect_throws_from_data(path, name):
     rolls = detect_rolls(df)
 
     detect_rolls_in_air(throws,rolls)
+
+    detect_throw_angle(throws)
     fig, axs = plt.subplots()
     axs.set_title(name, fontsize=10)
     axs.plot(times, acc_sum)

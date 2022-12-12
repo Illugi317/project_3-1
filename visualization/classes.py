@@ -6,6 +6,9 @@ class Throw:
         self.tof = len(fly_line)
         self.THROW_ON_FLOOR = False
         self.air_rolls=0
+        self.angle = 0
+    def set_angle(self,angle):
+        self.angle = angle
     def is_on_floor(self):
         self.THROW_ON_FLOOR = True
     def set_air_rolls(self,rolls):
