@@ -15,7 +15,7 @@ import sys
     :param index_max: index when the acceleration is at its peak
     :return:
 """
-def throw_distance(df, index1, index2, index_max):
+def throw_distance(df, index1, index_max, time_of_flight):
     y, x = get_accel(df, index1, index_max)
     initial_vel = get_init_vel(y, x)
     angle = getangle(df, index_max)
