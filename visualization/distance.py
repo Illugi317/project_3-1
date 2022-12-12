@@ -87,9 +87,9 @@ def get_start_throw(df, index):
         index1 = index1 - 1
         current_accel = df.accx[index1] + df.accy[index1] + df.accz[index1]
         if current_accel > 0 and last_accel < 0:
-            return last_accel
+            return index1 + 1
         if current_accel < 0 and last_accel > 0:
-            return last_accel
+            return index1 + 1
     return index1
 
 
