@@ -24,6 +24,7 @@
 #define RFM95_INT 15
 #define RF95_FREQ 434.0
 
+#define IMU_DATA_STRUCTURE_SIZE 120
 // Singleton instance of the radio driver
 RH_RF95 driver(RFM95_CS, RFM95_INT);
 
@@ -50,7 +51,7 @@ uint8_t broadcastAddress[] = {0xE8,0x9F,0x6D,0x26,0xA7,0x0C};
 //Structure to send data - F i x e d  v a l u e  m o m e n t
 typedef struct message_struct
 {
-  char imu_data[100];
+  char imu_data[IMU_DATA_STRUCTURE_SIZE];
   //char LoRa_gamers[];
 } message_struct;
 
@@ -72,50 +73,60 @@ void InitESPNow() {
 
 // send data
 void sendData(sensors_event_t* ori,sensors_event_t* gyro, sensors_event_t* liner, sensors_event_t* accl, sensors_event_t* grav, int temp) {
+  // PeerInfo address to the esp32 connected to ESP32
   const uint8_t *peer_addr = peerInfo.peer_addr;
   double x = -1000000, y = -1000000, z = -1000000;  //dumb values, easy to spot problem
+  // Dynamic string, Since the data is variable from 70 - 95 chars. 
   String reply;
+  // Orientation data.
   x = ori->orientation.x;
   y = ori->orientation.y;
   z = ori->orientation.z;
+  // Add to string
   reply += String(x);
   reply += ",";
   reply += String(y);
   reply += ",";
   reply += String(z);
   reply += ",";
+  // Gyroscope data
   x = gyro->gyro.x;
   y = gyro->gyro.y;
   z = gyro->gyro.z;
+  // Add to string
   reply += String(x);
   reply += ",";
   reply += String(y);
   reply += ",";
   reply += String(z);
   reply += ",";
+  // Linear accelaration vector
   x = liner->acceleration.x;
   y = liner->acceleration.y;
   z = liner->acceleration.z;
-  
+  // Add to string
   reply += String(x);
   reply += ",";
   reply += String(y);
   reply += ",";
   reply += String(z);
   reply += ",";
+  // Accelaration vector
   x = accl->acceleration.x;
   y = accl->acceleration.y;
   z = accl->acceleration.z;
-  
+  // Add to string
   reply += String(x);
   reply += ",";
   reply += String(y);
   reply += ",";
   reply += String(z);
   reply += ",";
+  // Gravity data
   x = grav->acceleration.x;
   y = grav->acceleration.y;
   z = grav->acceleration.z;
+  // Add to string
   reply += String(x);
   reply += ",";
   reply += String(y);
@@ -123,14 +134,15 @@ void sendData(sensors_event_t* ori,sensors_event_t* gyro, sensors_event_t* liner
   reply += String(z);
   reply += ",";
   reply += String(temp);
-  Serial.print("Sending:(ONLY IMU_DATA)\n");
-  Serial.print(strlen(reply.c_str()));
+  //Serial.print("Sending:(ONLY IMU_DATA)\n");
+  //Serial.println(strlen(reply.c_str()));
   //Serial.print(reply);
-  reply.toCharArray(message.imu_data, 100);
+  memset(message.imu_data, 0, IMU_DATA_STRUCTURE_SIZE);
+  reply.toCharArray(message.imu_data, IMU_DATA_STRUCTURE_SIZE);
   esp_err_t result = esp_now_send(peer_addr, (uint8_t *) &message, sizeof(message));
-  Serial.print("Send Status: ");
+  //Serial.print("Send Status: ");
   if (result == ESP_OK) {
-    Serial.println("Success");
+    Serial.println("Send Success");
   } else if (result == ESP_ERR_ESPNOW_NOT_INIT) {
     // How did we get so far!!
     Serial.println("ESPNOW not Init.");
@@ -147,7 +159,8 @@ void sendData(sensors_event_t* ori,sensors_event_t* gyro, sensors_event_t* liner
   }
 }
 
-// callback when data is sent from Master to Slave
+// callback when data is sent from Master to
+// This is essentially useless but is nice for debugging purposes.
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   char macStr[18];
   snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -215,7 +228,7 @@ uint8_t lora_data[] = "And hello back to you";
 uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  //Get all the data from the IMU
   sensors_event_t orientationData , angVelocityData , linearAccelData, magnetometerData, accelerometerData, gravityData;
   bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   bno.getEvent(&angVelocityData, Adafruit_BNO055::VECTOR_GYROSCOPE);
@@ -223,42 +236,39 @@ void loop() {
   bno.getEvent(&magnetometerData, Adafruit_BNO055::VECTOR_MAGNETOMETER);
   bno.getEvent(&accelerometerData, Adafruit_BNO055::VECTOR_ACCELEROMETER);
   bno.getEvent(&gravityData, Adafruit_BNO055::VECTOR_GRAVITY);
-  int8_t boardTemp = bno.getTemp(); 
-  //printEvent(&orientationData);
-  //printEvent(&angVelocityData);
-  //printEvent(&linearAccelData);
-  //printEvent(&magnetometerData);
-  //printEvent(&accelerometerData);
-  //printEvent(&gravityData);
-//
-  //int8_t boardTemp = bno.getTemp();
-  //Serial.println();
-  //Serial.print(F("temperature: "));
-  //Serial.println(boardTemp);
-//
-  //uint8_t system, gyro, accel, mag = 0;
-  //bno.getCalibration(&system, &gyro, &accel, &mag);
-  //Serial.println();
-  //Serial.print("Calibration: Sys=");
-  //Serial.print(system);
-  //Serial.print(" Gyro=");
-  //Serial.print(gyro);
-  //Serial.print(" Accel=");
-  //Serial.print(accel);
-  //Serial.print(" Mag=");
-  //Serial.println(mag);
-//
-  //Serial.println("--");
-  
-  //if (Serial.available()) {
-  //  SerialBT.write(Serial.read());
-  //}
-  //if (SerialBT.available()) {
-  //  Serial.write(SerialBT.read());
-  //}
-  
-  // transmit_data(&orientationData,&angVelocityData,&linearAccelData,&accelerometerData,&gravityData,boardTemp);
-  
+  //Temperture of IMU 
+  int8_t boardTemp = bno.getTemp();
+
+
+  // Debug messages, See all the data from the IMU
+  /*
+  printEvent(&orientationData);
+  printEvent(&angVelocityData);
+  printEvent(&linearAccelData);
+  printEvent(&magnetometerData);
+  printEvent(&accelerometerData);
+  printEvent(&gravityData);
+
+  int8_t boardTemp = bno.getTemp();
+  Serial.println();
+  Serial.print(F("temperature: "));
+  Serial.println(boardTemp);
+
+  uint8_t system, gyro, accel, mag = 0;
+  bno.getCalibration(&system, &gyro, &accel, &mag);
+  Serial.println();
+  Serial.print("Calibration: Sys=");
+  Serial.print(system);
+  Serial.print(" Gyro=");
+  Serial.print(gyro);
+  Serial.print(" Accel=");
+  Serial.print(accel);
+  Serial.print(" Mag=");
+  Serial.println(mag);
+
+  Serial.println("--");
+  */
+    
   //Lora fuckery
   uint8_t len = sizeof(buf);
   uint8_t from;
@@ -274,64 +284,6 @@ void loop() {
       Serial.println("LoRa out of range - sendtoWait failed");
   }
   sendData(&orientationData,&angVelocityData,&linearAccelData,&accelerometerData,&gravityData,boardTemp);
-  delay(50);
-
-}
-
-
-void transmit_data(sensors_event_t* ori,sensors_event_t* gyro, sensors_event_t* liner, sensors_event_t* accl, sensors_event_t* grav, int temp) {
-  double x = -1000000, y = -1000000, z = -1000000;  //dumb values, easy to spot problem
-  String reply;
-  x = ori->orientation.x;
-  y = ori->orientation.y;
-  z = ori->orientation.z;
-  reply += String(x);
-  reply += ",";
-  reply += String(y);
-  reply += ",";
-  reply += String(z);
-  reply += ",";
-  x = gyro->gyro.x;
-  y = gyro->gyro.y;
-  z = gyro->gyro.z;
-  reply += String(x);
-  reply += ",";
-  reply += String(y);
-  reply += ",";
-  reply += String(z);
-  reply += ",";
-  x = liner->acceleration.x;
-  y = liner->acceleration.y;
-  z = liner->acceleration.z;
-  
-  reply += String(x);
-  reply += ",";
-  reply += String(y);
-  reply += ",";
-  reply += String(z);
-  reply += ",";
-  x = accl->acceleration.x;
-  y = accl->acceleration.y;
-  z = accl->acceleration.z;
-  
-  reply += String(x);
-  reply += ",";
-  reply += String(y);
-  reply += ",";
-  reply += String(z);
-  reply += ",";
-  x = grav->acceleration.x;
-  y = grav->acceleration.y;
-  z = grav->acceleration.z;
-  reply += String(x);
-  reply += ",";
-  reply += String(y);
-  reply += ",";
-  reply += String(z);
-  reply += ",";
-  reply += String(temp);
-
-  //Send the shit
 }
 
 void printEvent(sensors_event_t* event) {

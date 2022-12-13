@@ -4,10 +4,12 @@
 #include "SerialTransfer.h"
 
 #define CHANNEL 1
+#define IMU_DATA_STRUCTURE_SIZE 120
+
 
 typedef struct message_struct
 {
-  char imu_data[100];
+  char imu_data[IMU_DATA_STRUCTURE_SIZE];
   //char lora_data[100];
 } message_struct;
 
@@ -61,18 +63,18 @@ void setup() {
 
 // callback when data is recv from Master
 void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) {
+  memset(the_data.imu_data,0,IMU_DATA_STRUCTURE_SIZE);
   memcpy(&the_data, data, sizeof(the_data));
   //Serial.println("INCOMING DATA:");
   //Serial.println(the_data.imu_data);
   //if(data_transfer.available())
   //{
-  for(int i=0; i<100; i++)
+  for(int i=0; i<IMU_DATA_STRUCTURE_SIZE; i++)
   {
     data_transfer.packet.txBuff[i] = the_data.imu_data[i];
   }
-  data_transfer.sendData(100);
+  data_transfer.sendData(IMU_DATA_STRUCTURE_SIZE);
   data_transfer.reset();
-  delay(50);
   //}
   //Serial Transfer Time.
 }
