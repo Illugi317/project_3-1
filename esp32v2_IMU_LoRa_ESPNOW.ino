@@ -199,7 +199,6 @@ void setup() {
   //Set device in STA mode to begin with
   WiFi.mode(WIFI_STA);
   esp_wifi_set_channel(CHANNEL, WIFI_SECOND_CHAN_NONE);
-  Serial.println("ESPNow/Basic/Master Example");
   // This is the mac address of the Master in Station Mode
   Serial.print("STA MAC: "); Serial.println(WiFi.macAddress());
   Serial.print("STA CHANNEL "); Serial.println(WiFi.channel());
