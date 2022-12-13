@@ -129,7 +129,7 @@ def detect_throws_from_data(path, name):
         :param peaks: every peak we have detected
         :return: the closest peak *before* the line end
         """
-        smaller = [x for x in peaks if x <= start]
+        smaller = [x for x in peaks if x < start]
         if len(smaller) > 0:
             return max(smaller)
         else:
@@ -187,7 +187,15 @@ def detect_throws_from_data(path, name):
             processed +=1
             start = line[0]  # START OF FLAT LINE
             end = line[-1]  # END OF FLAT LINE
-            closest_peak = get_closest_peak(start, peaks)  # CLOSEST PEAK BEFORE THE LINE
+            closest_peak = get_closest_peak(start, peaks)# CLOSEST PEAK BEFORE THE LINE
+            peak_just_before = get_closest_peak(closest_peak,peaks)
+            previous = True
+            while previous:
+                if next_peak_is_part_of_first_peak(peak_just_before,closest_peak):
+                    closest_peak=peak_just_before
+                    peak_just_before = get_closest_peak(closest_peak,peaks)
+                else:
+                    previous=False
             curr_next = get_next_peak(end,peaks) # NEXT PEAK AFTER THE LINE
             next_is_good = True
             while next_is_good:
@@ -421,7 +429,7 @@ def detect_throws_from_data(path, name):
 
     flying_line = extend_fly_lines(flying_line,additional_fly_lines)
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
-    throws = find_times_of_throw(flying_line, peak_times, 250)
+    throws = find_times_of_throw(flying_line, peak_times, 350 )
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
     if len(throws) == 0:
         flying_line = detect_lines(acc_sum, 1.5, 1.5, 750)
@@ -439,7 +447,8 @@ def detect_throws_from_data(path, name):
     fig, axs = plt.subplots()
     axs.set_title(name, fontsize=10)
     axs.plot(times, acc_sum)
-    plot_all_peaks(peak_times,peak_heights,axs)
+    #axs.plot(times,lin_sum)
+    #plot_all_peaks(peak_times,peak_heights,axs)
     plot_throws(throws, axs)
     for line in gravity_lines:
         plot_line(line, axs,50)

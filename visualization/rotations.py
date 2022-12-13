@@ -19,9 +19,9 @@ def clean_data(path):
     with open(path, 'r', encoding='UTF-8') as f:
         for line in f.readlines():
             vals = line.split(",")
-            while_length = 16
+            while_length = 17
             saved = False
-            if len(vals) > 16:
+            if len(vals) > 17:
                 saved = vals.pop()
                 while_length -= 1
             while len(vals) > while_length:

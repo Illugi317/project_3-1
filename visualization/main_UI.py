@@ -108,9 +108,9 @@ def give_left_text(current_throw):
     This method returns the text containing all data we have on a throw
     """
     angle = current_throw.angle
-    if angle<20: #above
+    if angle<5: #above
         throw = "overhead throw"
-    elif angle<55: #chest
+    elif angle<35: #chest
 
         throw = "chest throw"
     else:  #under

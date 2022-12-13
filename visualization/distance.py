@@ -21,7 +21,7 @@ def throw_distance(df, index_max, time_of_flight):
     angle = getangle(df, index_max)
     print(angle)
     grav = 9.80665
-    time_of_flight = time_of_flight*0.0185
+    time_of_flight = time_of_flight/1000
     height = (time_of_flight*(time_of_flight * grav - 2*initial_vel*math.sin(angle)))/2
     print(height)
     distance = initial_vel * math.cos(angle)*(initial_vel*math.sin(angle) + math.sqrt((initial_vel * math.sin(angle))**2)+2*grav*height)
@@ -36,8 +36,8 @@ def throw_distance(df, index_max, time_of_flight):
 def getangle(df, index):
     x, y, z = get_linear_xyz(df, index)
     h = math.sqrt(x**2+y**2)
-    v = z-9.81
-    v = math.sqrt(v**2)
+    v = (z*-1)-9.81
+    #v = math.sqrt(v**2)
     angle = math.atan(v/h)
     return angle
 """
@@ -66,7 +66,7 @@ def get_accel(df, index2):
         k = math.sqrt(df.accx[index1+x-1]**2+df.accy[index1+x-1]**2+df.accz[index1+x-1]**2)-9.80665
         acc.append(k)
         # time value is currently at 0.1 which mean the IMU would send the data 0.1 seconds apart, change this value if you have a more accurate time stamp.
-        x_counter = x_counter + 0.027
+        x_counter = x_counter + 0.027   #TODO implement miliseconds from dataframe
         xaxis.append(x_counter)
     return acc, xaxis
 
@@ -76,9 +76,10 @@ def get_accel(df, index2):
     :return:
 """
 
-def get_start_throw(df, index):
+def get_start_throw(df, index): #TODO change this
     abs_current_accel = 100
     index1 = index
+
     current_accel = df.accx[index1] ** 2 + df.accy[index1] ** 2 + df.accz[index1]
 
     while abs_current_accel > 9.80665:
