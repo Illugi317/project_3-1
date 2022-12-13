@@ -6,7 +6,9 @@ from os import makedirs
 import matplotlib.pyplot as plt
 import numpy as np
 import statistics
-from throws import Throw
+from classes import Throw,Roll
+from distance import getangle, throw_distance
+from rotations import detect_rolls
 DIR_ROOT = dirname(dirname(abspath(__file__)))
 DIR_VISUAL = join(DIR_ROOT,"visualization")
 DIR_IMG = join(DIR_VISUAL,"images")
@@ -56,37 +58,26 @@ def detect_throws_from_data(path, name):
         peaks, _ = find_peaks(data, height=h)
         return peaks, _
 
-    def detect_lines(signal, center, sway, limit):
+    def detect_lines(signal, center, sway, limit,first_point=0):
         """
         :param signal: The entire data we get from the accelerometer
         :param center: The center value of lines we want to find
         :param sway:  The allowed +/- values from center for lines we want to find
-        :param limit: The minimum length of a line detected that we qualify as a legit line ( to remove small lines which wont count)
-        :param inter_sway: The allowed +/- values between each point of line, to limit lines that go up and down line crazy
-        :param std_limit:  A metric checked after a line, if the std of values is above limit we dont qualify the line - > recommended around 0.5
+        :param limit: The minimum time of line ( in miliseconds)
         :return:
         """
         lines = []
         current_line = []
-        last_point = 0
         for i in range(len(signal)):
             point = signal[i]
-            # print(i)
             if in_bounds(point, center, sway):
-                if last_point == 0:
-                    current_line.append(i)
-                    last_point = point
-                else:
-                    current_line.append(i)
-                    last_point = point
-            elif len(current_line) > limit:
+                 current_line.append(first_point+i)
+            elif get_time_of_line(current_line) > limit:
                 lines.append(current_line)
                 current_line = []
-                last_point = 0
             else:
                 current_line = []
-                last_point = 0
-        if len(current_line) > limit:
+        if get_time_of_line(current_line) > limit:
                 lines.append(current_line)
         return lines
 
@@ -138,7 +129,7 @@ def detect_throws_from_data(path, name):
         :param peaks: every peak we have detected
         :return: the closest peak *before* the line end
         """
-        smaller = [x for x in peaks if x <= start]
+        smaller = [x for x in peaks if x < start]
         if len(smaller) > 0:
             return max(smaller)
         else:
@@ -196,7 +187,15 @@ def detect_throws_from_data(path, name):
             processed +=1
             start = line[0]  # START OF FLAT LINE
             end = line[-1]  # END OF FLAT LINE
-            closest_peak = get_closest_peak(start, peaks)  # CLOSEST PEAK BEFORE THE LINE
+            closest_peak = get_closest_peak(start, peaks)# CLOSEST PEAK BEFORE THE LINE
+            peak_just_before = get_closest_peak(closest_peak,peaks)
+            previous = True
+            while previous:
+                if next_peak_is_part_of_first_peak(peak_just_before,closest_peak):
+                    closest_peak=peak_just_before
+                    peak_just_before = get_closest_peak(closest_peak,peaks)
+                else:
+                    previous=False
             curr_next = get_next_peak(end,peaks) # NEXT PEAK AFTER THE LINE
             next_is_good = True
             while next_is_good:
@@ -209,10 +208,10 @@ def detect_throws_from_data(path, name):
                 continue  # THIS PART IS BASICALLY BOUNCE DETECTION
             if closest_peak == -1:  # IF CLOSEST PEAK DOESNT EXIST THEN CONTINUE
                 continue
-            if start - closest_peak <= peak_distance and next_peak - end <= peak_distance:  # IF THE DISTANCE BETWEEN START OF LINE AND CLOSEST PEAK IS CLOSE ENOUGH BASED ON THE MEASURE WE DID
+            if get_time_between_points(closest_peak,start) <= peak_distance and get_time_between_points(end,next_peak) <=peak_distance:  # IF THE DISTANCE BETWEEN START OF LINE AND CLOSEST PEAK IS CLOSE ENOUGH BASED ON THE MEASURE WE DID
                 time_of_throw = closest_peak
                 acc_val = acc_sum[time_of_throw]
-                new_throw = Throw(acc_val,line,time_of_throw)
+                new_throw = Throw(acc_val,line,time_of_throw,get_time_between_points(time_of_throw,line[-1]))
                 throws.append(new_throw)
                 if last_peak == -1:  # CHANGE DUMB VALUE TO NEXT PEAK IF EXISTS
                     last_peak = next_peak
@@ -249,7 +248,40 @@ def detect_throws_from_data(path, name):
         vals = peak_val.get('peak_heights')
         for i in range(len(peak_times)):
             ax.plot(peak_times[i],vals[i],"x")
+
+
+
+    def detect_rolls_in_air(throws,rolls):
+        """
+        :param throws: Every throw we detected
+        :param rolls: Every roll we detected
+        :return:  Nothing, puts the amount of rolls that happened when the cube was flying during each throw inside of throw
+        """
+        for t in throws:
+            start_time = t.time
+            end_time = t.fly_line[-1]
+            roll_count = 0
+            for r in rolls:
+                time = r.time
+                if start_time <= time <= end_time:
+                    roll_count+=1
+            t.set_air_rolls(roll_count)
+
+    def detect_throw_angle(throws):
+        """
+        :param throws: Every throw we detected
+        :return: Nothing, puts the angle data inside of throws
+        """
+        for t in throws:
+            time = t.time
+            angle = getangle(df,time)
+            t.set_angle(angle)
     def detect_throws_on_floor(throws,grav_lines):
+        """
+        :param throws: Every throw we detected
+        :param grav_lines:  every gravity line detected
+        :return: Nothing, but makes the throws be marked as the ones that ended up with cube on floor
+        """
         for t in throws:
             time = t.time
             other_times = []
@@ -258,6 +290,7 @@ def detect_throws_from_data(path, name):
             next_time = find_higher(time,other_times)
             if there_is_a_line_between(time,next_time,grav_lines):
                 t.is_on_floor()
+
 
     def analyze_lines(points, line, std_limit):
         """
@@ -274,7 +307,95 @@ def detect_throws_from_data(path, name):
             return True
         else:
             return False
+
+    def get_time_of_line(line):
+        """
+        :param line: flying or gravity line
+        :return: The time that the cube spent during that line
+        """
+        if len(line) == 0 :
+            return 0
+        return get_time_between_points(line[0],line[-1])
+
+    def get_time_between_points(start,end):
+        """
+        :param start: First time point in entire data
+        :param end: Second time point in entire data
+        :return: The time between these points, in miliseconds
+        """
+        total=0
+        ms=df.ms
+        for i in range(1,end+1-start):
+            time=ms[start+i]
+            total+=time
+        return total
+    def find_possible_times_of_intense_rolls(rolls,time_between):
+        """
+        :param rolls: Every roll we detected
+        :param time_between: Time in miliseconds between each roll to be qualified as continuous rolls
+        :return: All times when the die was doing multiple rolls in a row in a short time interval determined by time_between
+        """
+        lines=[]
+        current_line = []
+        for r in rolls:
+            time = r.time
+            if len(current_line) == 0:
+                current_line.append(time)
+            else:
+                last = current_line[-1]
+                time_diff = get_time_between_points(last,time)
+                if time_diff < time_between:
+                    current_line.append(time)
+                else:
+                    if len(current_line)>1:
+                        lines.append(current_line)
+                    current_line=[]
+        return lines
+
+    def find_flying_lines_from_rolling_lines(roll_lines):
+        """
+        :param roll_lines: The times when the cube was rolling a lot
+        :return: The fly lines detected withing the rolling times of cube
+        """
+        total_lines=[]
+        for r in roll_lines:
+            first=r[0]
+            second = r[-1]
+            acc_sum_here = acc_sum[first:second]
+            fly_lines = detect_lines(signal=acc_sum_here,center=2.5,sway=2.5,limit=300,first_point=first)
+            total_lines.extend(fly_lines)
+        return total_lines
+    def extend_fly_lines(flying_lines,rolling_flying_lines):
+        """
+        :param flying_lines: Flying times detected normally
+        :param rolling_flying_lines: Flying times detected during the cube rolling
+        :return: Full list of both of the lines, without multiple lines being in the same place
+        """
+        total_lines=rolling_flying_lines
+        for f in flying_lines:
+            for r in rolling_flying_lines:
+                if all(item in r for item in f):
+                    continue
+            total_lines.append(f)
+        return total_lines
+
+
+    def get_distance_for_throws(throws):
+        for t in throws:
+            time =t.time
+            tof = t.tof
+            distance = throw_distance(df,time,tof)
+            t.set_distance(distance)
     def filter_lines(lines,maximal_derivation):
+        """
+        :param lines: gravity lines we detected
+        :param maximal_derivation: Maximal deviation of points on the line from the center
+        ( with exclusion of first 12 points and last 3)
+        Why were they excluded -> when the cube lands it has a bit of shaky data when it stops moving,
+        which was usually also included in the gravity line
+        And we want to only analize the data when it is 100% stopped moving
+        :return: The filtered lines
+        """
         filtered = []
         for line in lines:
             length = len(line)
@@ -293,26 +414,41 @@ def detect_throws_from_data(path, name):
            # print(f"The maximal positive difference is {maximal-mean}")
             #print(f"The maximal negative difference is {mean-minimal}")
         return filtered
-    peak_times, peak_heights = detect_peaks(acc_sum, 5)
+    peak_times, peak_heights = detect_peaks(acc_sum, 8)
     print(f"I detected peaks + {len(peak_times)}")
-    gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 30)
-    flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 15)
+    gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 1000)
+    flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 300)
+    print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
+    rolls = detect_rolls(df)
 
     gravity_lines = filter_lines(gravity_lines,0.5)
 
+    rolling_times = find_possible_times_of_intense_rolls(rolls,350)
 
-    print(f"I detected lines + {len(flying_line)}")
-    throws = find_times_of_throw(flying_line, peak_times, 15)
+    additional_fly_lines = find_flying_lines_from_rolling_lines(rolling_times)
+
+    flying_line = extend_fly_lines(flying_line,additional_fly_lines)
+    print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
+    throws = find_times_of_throw(flying_line, peak_times, 350 )
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
     if len(throws) == 0:
-        flying_line = detect_lines(acc_sum, 1.5, 1.5, 5)
-        throws = find_times_of_throw(flying_line, peak_times, 5)
+        flying_line = detect_lines(acc_sum, 1.5, 1.5, 750)
+        throws = find_times_of_throw(flying_line, peak_times, 8)
     print("I detected throws")
     detect_throws_on_floor(throws,gravity_lines)
+    for t in throws:
+        t.print()
+
+    detect_rolls_in_air(throws,rolls)
+
+    detect_throw_angle(throws)
+
+    get_distance_for_throws(throws)
     fig, axs = plt.subplots()
     axs.set_title(name, fontsize=10)
     axs.plot(times, acc_sum)
-    plot_all_peaks(peak_times,peak_heights,axs)
+    #axs.plot(times,lin_sum)
+    #plot_all_peaks(peak_times,peak_heights,axs)
     plot_throws(throws, axs)
     for line in gravity_lines:
         plot_line(line, axs,50)
@@ -323,10 +459,11 @@ def detect_throws_from_data(path, name):
     return path_to_file,throws
 if __name__ == '__main__':
     paths = []
-    names = ['throw_distance_chest2.csv','throw_distance_chest4.csv','throw_distance_overhead2.5.csv'
-        ,'throw_distance_overhead4.csv','throw_distance_under1.8.csv','throw_distance_under3.2.csv']
+    #names = ['throw_distance_chest2.csv','throw_distance_chest4.csv','throw_distance_overhead2.5.csv'
+       # ,'throw_distance_overhead4.csv','throw_distance_under1.8.csv','throw_distance_under3.2.csv']
+    names = ['throw-demo.csv']
     for n in names:
-        path = join(DIR_CSV, "csv_distance")
+        path = join(DIR_CSV, "csv_new_throws")
         path = join(path,n)
         saving_file = join(DIR_IMG,n)
         detect_throws_from_data(path, saving_file)
