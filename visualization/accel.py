@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import statistics
 from classes import Throw,Roll
-from distance import getangle
+from distance import getangle, throw_distance
 from rotations import detect_rolls
 DIR_ROOT = dirname(dirname(abspath(__file__)))
 DIR_VISUAL = join(DIR_ROOT,"visualization")
@@ -305,6 +305,8 @@ def detect_throws_from_data(path, name):
         :param line: flying or gravity line
         :return: The time that the cube spent during that line
         """
+        if len(line) == 0 :
+            return 0
         return get_time_between_points(line[0],line[-1])
 
     def get_time_between_points(start,end):
@@ -368,6 +370,14 @@ def detect_throws_from_data(path, name):
                     continue
             total_lines.append(f)
         return total_lines
+
+
+    def get_distance_for_throws(throws):
+        for t in throws:
+            time =t.time
+            tof = t.tof
+            distance = throw_distance(df,time,tof)
+            t.set_distance(distance)
     def filter_lines(lines,maximal_derivation):
         """
         :param lines: gravity lines we detected
@@ -424,6 +434,8 @@ def detect_throws_from_data(path, name):
     detect_rolls_in_air(throws,rolls)
 
     detect_throw_angle(throws)
+
+    get_distance_for_throws(throws)
     fig, axs = plt.subplots()
     axs.set_title(name, fontsize=10)
     axs.plot(times, acc_sum)
