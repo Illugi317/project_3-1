@@ -1,14 +1,15 @@
+import math
 class Throw:
-    def __init__(self,peak_val,fly_line,time):
+    def __init__(self,peak_val,fly_line,time,tof):
         self.time=time
         self.peak_val=round(peak_val,2)
         self.fly_line=fly_line
-        self.tof = len(fly_line)
+        self.tof = round(tof/1000,2)
         self.THROW_ON_FLOOR = False
         self.air_rolls=0
         self.angle = 0
     def set_angle(self,angle):
-        self.angle = angle
+        self.angle = round(math.degrees(angle),1)
     def is_on_floor(self):
         self.THROW_ON_FLOOR = True
     def set_air_rolls(self,rolls):

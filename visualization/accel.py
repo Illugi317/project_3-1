@@ -58,37 +58,27 @@ def detect_throws_from_data(path, name):
         peaks, _ = find_peaks(data, height=h)
         return peaks, _
 
-    def detect_lines(signal, center, sway, limit):
+    def detect_lines(signal, center, sway, limit,first_point=0):
         """
         :param signal: The entire data we get from the accelerometer
         :param center: The center value of lines we want to find
         :param sway:  The allowed +/- values from center for lines we want to find
-        :param limit: The minimum length of a line detected that we qualify as a legit line ( to remove small lines which wont count)
-        :param inter_sway: The allowed +/- values between each point of line, to limit lines that go up and down line crazy
-        :param std_limit:  A metric checked after a line, if the std of values is above limit we dont qualify the line - > recommended around 0.5
+        :param limit: The minimum time of line ( in miliseconds)
         :return:
         """
         lines = []
         current_line = []
-        last_point = 0
         for i in range(len(signal)):
             point = signal[i]
             # print(i)
             if in_bounds(point, center, sway):
-                if last_point == 0:
-                    current_line.append(i)
-                    last_point = point
-                else:
-                    current_line.append(i)
-                    last_point = point
-            elif len(current_line) > limit:
+                 current_line.append(first_point+i)
+            elif get_time_of_line(current_line) > limit:
                 lines.append(current_line)
                 current_line = []
-                last_point = 0
             else:
                 current_line = []
-                last_point = 0
-        if len(current_line) > limit:
+        if get_time_of_line(current_line) > limit:
                 lines.append(current_line)
         return lines
 
@@ -214,7 +204,7 @@ def detect_throws_from_data(path, name):
             if start - closest_peak <= peak_distance and next_peak - end <= peak_distance:  # IF THE DISTANCE BETWEEN START OF LINE AND CLOSEST PEAK IS CLOSE ENOUGH BASED ON THE MEASURE WE DID
                 time_of_throw = closest_peak
                 acc_val = acc_sum[time_of_throw]
-                new_throw = Throw(acc_val,line,time_of_throw)
+                new_throw = Throw(acc_val,line,time_of_throw,get_time_between_points(time_of_throw,line[-1]))
                 throws.append(new_throw)
                 if last_peak == -1:  # CHANGE DUMB VALUE TO NEXT PEAK IF EXISTS
                     last_peak = next_peak
@@ -295,6 +285,60 @@ def detect_throws_from_data(path, name):
             return True
         else:
             return False
+
+    def get_time_of_line(line):
+        if len(line)==0:
+            return 0
+        ms = df.ms
+        total=0
+        first=line[0]
+        for i in range(1,len(line)):
+            x = i+first
+            total+=ms[x]
+        return total
+
+    def get_time_between_points(start,end):
+        total=0
+        ms=df.ms
+        for i in range(1,end+1-start):
+            time=ms[start+i]
+            total+=time
+        return total
+    def find_possible_times_of_intense_rolls(rolls,time_between):
+        lines=[]
+        current_line = []
+        for r in rolls:
+            time = r.time
+            if len(current_line) == 0:
+                current_line.append(time)
+            else:
+                last = current_line[-1]
+                time_diff = get_time_between_points(last,time)
+                if time_diff < time_between:
+                    current_line.append(time)
+                else:
+                    if len(current_line)>1:
+                        lines.append(current_line)
+                    current_line=[]
+        return lines
+
+    def find_flying_lines_from_rolling_lines(roll_lines):
+        total_lines=[]
+        for r in roll_lines:
+            first=r[0]
+            second = r[-1]
+            acc_sum_here = acc_sum[first:second]
+            fly_lines = detect_lines(signal=acc_sum_here,center=2.5,sway=2.5,limit=300,first_point=first)
+            total_lines.extend(fly_lines)
+        return total_lines
+    def extend_fly_lines(flying_lines,rolling_flying_lines):
+        total_lines=rolling_flying_lines
+        for f in flying_lines:
+            for r in rolling_flying_lines:
+                if all(item in r for item in f):
+                    continue
+            total_lines.append(f)
+        return total_lines
     def filter_lines(lines,maximal_derivation):
         filtered = []
         for line in lines:
@@ -316,23 +360,28 @@ def detect_throws_from_data(path, name):
         return filtered
     peak_times, peak_heights = detect_peaks(acc_sum, 8)
     print(f"I detected peaks + {len(peak_times)}")
-    gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 30)
-    flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 25)
+    gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 1000)
+    flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 300)
+    print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
+    rolls = detect_rolls(df)
 
     gravity_lines = filter_lines(gravity_lines,0.5)
 
+    rolling_times = find_possible_times_of_intense_rolls(rolls,350)
 
-    print(f"I detected lines + {len(flying_line)}")
+    additional_fly_lines = find_flying_lines_from_rolling_lines(rolling_times)
+
+    flying_line = extend_fly_lines(flying_line,additional_fly_lines)
+    print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
     throws = find_times_of_throw(flying_line, peak_times, 75)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
     if len(throws) == 0:
-        flying_line = detect_lines(acc_sum, 1.5, 1.5, 10)
+        flying_line = detect_lines(acc_sum, 1.5, 1.5, 750)
         throws = find_times_of_throw(flying_line, peak_times, 8)
     print("I detected throws")
     detect_throws_on_floor(throws,gravity_lines)
     for t in throws:
         t.print()
-    rolls = detect_rolls(df)
 
     detect_rolls_in_air(throws,rolls)
 
@@ -353,7 +402,7 @@ if __name__ == '__main__':
     paths = []
     #names = ['throw_distance_chest2.csv','throw_distance_chest4.csv','throw_distance_overhead2.5.csv'
        # ,'throw_distance_overhead4.csv','throw_distance_under1.8.csv','throw_distance_under3.2.csv']
-    names = ['throw_roll_on_ground.csv']
+    names = ['throw-demo.csv']
     for n in names:
         path = join(DIR_CSV, "csv_new_throws")
         path = join(path,n)

@@ -72,16 +72,15 @@ def clean_walls_errors(list):
     clean_list =[]
     clean_list.append(list[0])
     for i in range(1,len(list)-1):
-        last = list[i-1]
+        last = clean_list[i-1]
         next = list[i+1]
         current = list[i]
-        if last == next and last !=current:
+        if current == -1:
+            clean_list.append(last)
+        elif last != current and next!= current:
             clean_list.append(last)
         else:
-            if current == -1:
-                clean_list.append(last)
-            else:
-                clean_list.append(current)
+            clean_list.append(current)
     clean_list.append(list[-1])
     return clean_list
 def analyze_walls(df):
