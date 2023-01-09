@@ -92,14 +92,14 @@ def detect_throws_from_data(path, name):
         top_bound = center + sway
         return lower_bound <= point <= top_bound
 
-    def plot_line(each_line, axis,height):
+    def plot_line(each_line, axis,color):
         """
         :param each_line: List of points on the line
         :param axis: axis to plot on
         :return: Nothing
         """
-        t_line_0 = np.full(len(each_line), height)
-        axis.plot(each_line, t_line_0)
+        heights = [acc_sum[i] for i in each_line]
+        axis.plot(each_line, heights,color)
 
     def plot_throws(throws,axis):
         for t in throws:
@@ -240,7 +240,7 @@ def detect_throws_from_data(path, name):
         for l in lines:
             l_point = l[0]
             if start<l_point<end:
-                return True
+                return l
         return False
 
 
@@ -288,8 +288,9 @@ def detect_throws_from_data(path, name):
             for t2 in throws:
                 other_times.append(t2.time)
             next_time = find_higher(time,other_times)
-            if there_is_a_line_between(time,next_time,grav_lines):
-                t.is_on_floor()
+            result = there_is_a_line_between(time,next_time,grav_lines)
+            if result != False:
+                t.is_on_floor(result)
 
 
     def analyze_lines(points, line, std_limit):
@@ -359,8 +360,8 @@ def detect_throws_from_data(path, name):
         """
         total_lines=[]
         for r in roll_lines:
-            first=r[0]
-            second = r[-1]
+            first=r[0]-20
+            second = r[-1]+20
             acc_sum_here = acc_sum[first:second]
             fly_lines = detect_lines(signal=acc_sum_here,center=2.5,sway=2.5,limit=300,first_point=first)
             total_lines.extend(fly_lines)
@@ -386,6 +387,7 @@ def detect_throws_from_data(path, name):
             tof = t.tof
             distance = throw_distance(df,time,tof)
             t.set_distance(distance)
+
     def filter_lines(lines,maximal_derivation):
         """
         :param lines: gravity lines we detected
@@ -414,10 +416,40 @@ def detect_throws_from_data(path, name):
            # print(f"The maximal positive difference is {maximal-mean}")
             #print(f"The maximal negative difference is {mean-minimal}")
         return filtered
+
+    def get_pictures_of_throws(throws):
+        paths_list=[]
+        for i in range(len(throws)):
+            throw = throws[i]
+            line=throw.fly_line
+            lower_bound=line[0]-20
+            grav=False
+            if throw.THROW_ON_FLOOR:
+                upper_bound=throw.grav_line[-1]+20
+                grav=True
+            else:
+                upper_bound=line[-1]+20
+            x = range(lower_bound,upper_bound)
+            y = [acc_sum[i] for i in x]
+            plt.figure(i)
+            plt.plot(x,y)
+            name = f"Throw {i+1}"
+            plt.title(name, fontsize=10)
+            plt.xlabel("Data points received")
+            plt.ylabel("Sum of absolute acceleration values")
+            plot_line(line, plt, 'y')
+            plot_point(throw.time, plt)
+            if grav:
+                plot_line(throw.grav_line,plt,'r')
+            path_to_file = name + ".png"
+            plt.savefig(path_to_file, dpi=200)
+            paths_list.append(path_to_file)
+        return paths_list
+
     peak_times, peak_heights = detect_peaks(acc_sum, 8)
     print(f"I detected peaks + {len(peak_times)}")
     gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 1000)
-    flying_line = detect_lines(acc_sum, center = 1, sway = 1, limit = 300)
+    flying_line = detect_lines(acc_sum, center = 1.5, sway = 1.5, limit = 400)
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
     rolls = detect_rolls(df)
 
@@ -429,7 +461,7 @@ def detect_throws_from_data(path, name):
 
     flying_line = extend_fly_lines(flying_line,additional_fly_lines)
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
-    throws = find_times_of_throw(flying_line, peak_times, 350 )
+    throws = find_times_of_throw(flying_line, peak_times, 250)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
     if len(throws) == 0:
         flying_line = detect_lines(acc_sum, 1.5, 1.5, 750)
@@ -444,19 +476,24 @@ def detect_throws_from_data(path, name):
     detect_throw_angle(throws)
 
     get_distance_for_throws(throws)
-    fig, axs = plt.subplots()
-    axs.set_title(name, fontsize=10)
-    axs.plot(times, acc_sum)
-    #axs.plot(times,lin_sum)
-    #plot_all_peaks(peak_times,peak_heights,axs)
-    plot_throws(throws, axs)
+
+    throw_paths = get_pictures_of_throws(throws)
+    plt.figure(len(throws))
+    plt.plot(times, acc_sum)
+    plt.title(name, fontsize=10)
+    plt.xlabel("Data points received")
+    plt.ylabel("Sum of absolute acceleration values")
+    plot_throws(throws, plt)
     for line in gravity_lines:
-        plot_line(line, axs,50)
+        plot_line(line, plt,'r')
     for line in flying_line:
-        plot_line(line, axs,100)
+        plot_line(line, plt,'y')
     path_to_file=name+".png"
     plt.savefig(path_to_file,dpi=200)
-    return path_to_file,throws
+
+    all_pictures=[path_to_file]
+    all_pictures.extend(throw_paths)
+    return all_pictures,throws
 if __name__ == '__main__':
     paths = []
     #names = ['throw_distance_chest2.csv','throw_distance_chest4.csv','throw_distance_overhead2.5.csv'

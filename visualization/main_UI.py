@@ -25,11 +25,13 @@ def makeBasic():
     white = np.ones([720, 1080, 3]).astype(np.uint8) * 255
     main_array = white
     white_image = ImageTk.PhotoImage(Image.fromarray(white))
+    LeftTop = Label(text="Load IMU data to begin!")
+    LeftTop.config(bg="#CFCF2F")
+    LeftTop.grid(row=0, column=0, columnspan=6)
     LeftBox = Canvas(root)
     LeftBox.grid(row=1, column=0, columnspan=6)
     text = Text(LeftBox, width=60, height=20)
     text.pack()
-    text.insert(INSERT, "Load IMU data to begin!")
     text.config(state=DISABLED)
     give_legend()
     """
@@ -55,12 +57,12 @@ def give_list():
     This method returns a nice OptionMenu where the user can choose which throw to inspect
     """
     global current_throws, var, LeftBox
-    mylist = []
+    mylist = ["All IMU Data"]
     for i in range(1, len(current_throws) + 1):
         mylist.append(f"Throw_{i}")
     var = StringVar(LeftBox)
     var.set(mylist[0])
-    var.trace("w", update_left_text)
+    var.trace("w", update_left_text_and_image)
     w = OptionMenu(LeftBox, var, *mylist)
     return w
 
@@ -73,7 +75,7 @@ def update_left(*args):
     if main_array is not white:
         LeftBox.grid_forget()
         LeftBox = Canvas(width=200, height=700)
-        LeftTop = Label(text="Select the throw to inspect!")
+        LeftTop = Label(text="Select the plots to inspect!")
         LeftTop.config(bg="#CFCF2F")
         LeftTop.grid(row=0, column=0, columnspan=6)
         List = give_list()
@@ -83,12 +85,18 @@ def update_left(*args):
         text = Text(LeftBox, width=60, height=20,wrap=WORD)
         text.pack()
         current_throw_title = var.get()
-        current_throw = current_throws[int(current_throw_title[-1]) - 1]
-        throw_data = give_left_text(current_throw)
+        if "Throw" in current_throw_title:
+            current_throw = current_throws[int(current_throw_title[-1]) - 1]
+            throw_data = give_left_text(current_throw)
+        else:
+            throw_data = "This is the plot of the entire data from the IMU.\n" \
+                         "You can inspect the individual throws by selecting the drop-menu above"
         text.insert(INSERT, throw_data)
         text.config(state=DISABLED)
         left_text = text
         give_legend()
+    else:
+        print("wtf")
 
 
 def give_legend():
@@ -97,8 +105,8 @@ def give_legend():
     picture_legend.pack()
     legend = "How to interpret the plotted image? \n" \
              "The 'X' points are located at the time of each detected throw \n" \
-             "The lines at height 100 are highlighting the times when we detected that the die was flying\n" \
-             "The lines at height 50 are highlighting the times when we detected that the die was not moving, " \
+             "The yellow lines are highlighting the times when we detected that the die was flying\n" \
+             "The red lines are highlighting the times when we detected that the die was not moving, " \
              "most probably laying on the floor \n"
     picture_legend.insert(INSERT, legend)
 
@@ -126,16 +134,25 @@ def give_left_text(current_throw):
     return throw_data
 
 
-def update_left_text(*args):
+def update_left_text_and_image(*args):
     """
-    This method updates the text on the left column when changing the currently inspected throw
+    This method updates the text on the left column and main image  when changing the currently inspected throw
     :param args:
     :return:
     """
-    global left_text, var
+    global left_text, var,images
     current_throw_title = var.get()
-    current_throw = current_throws[int(current_throw_title[-1]) - 1]
-    throw_data = give_left_text(current_throw)
+    import time
+    if "Throw" in current_throw_title:
+        number= int(current_throw_title[-1])
+        current_throw = current_throws[number - 1]
+        throw_data = give_left_text(current_throw)
+        update_main_image(images[number])
+
+    else:
+        throw_data = "This is the plot of the entire data from the IMU.\n"\
+                    "You can inspect the individual throws by selecting the drop-menu above"
+        update_main_image(images[0])
     left_text.config(state=NORMAL)
     left_text.delete("1.0", "end")
     left_text.insert(INSERT, throw_data)
@@ -191,30 +208,45 @@ def resizing(image, width, height):
     newSize = (width, height)
     return cv2.resize(image, newSize, interpolation=cv2.INTER_NEAREST)
 
-
+"""
 def update_main_image(filename):
-    """
-    Updates the main image with the given image   BTW ALL OF THESE IMAGE UPDATES ARE FROM PAST PROJECT,
-     WE WILL ONLY HAVE ONE OF THESE RN IM TOO LAZY TO REFACTOR THEM SORRY
-    """
+    
+    #Updates the main image with the given image   BTW ALL OF THESE IMAGE UPDATES ARE FROM PAST PROJECT,
+    # WE WILL ONLY HAVE ONE OF THESE RN IM TOO LAZY TO REFACTOR THEM SORRY
+   
     global main_array
     main_array = cv2.imread(filename)
     main_array = cv2.cvtColor(main_array, cv2.COLOR_BGR2RGB)
     main_array = resizing(main_array, 1080, 720)
     update_image(main_array)
     update_left()
-
+"""
+def update_main_image(image,init=False):
+    global main_array
+    main_array=image
+    update_image(image)
+    if init:
+        update_left()
+def load_images(paths):
+    images=[]
+    for p in paths:
+        array = cv2.imread(p)
+        array = cv2.cvtColor(array,cv2.COLOR_BGR2RGB)
+        array = resizing(array,1080,720)
+        images.append(array)
+        os.remove(p)
+    return images
 
 def load_file():
     """
     Loads the IMU data and plots everything
     """
-    global current_throws
+    global current_throws, images
     filename = filedialog.askopenfilename(initialdir=DIR_ROOT, title="Select the IMU data csv!")
     image_path, throws = detect_throws_from_data(filename, "throw_data")
     current_throws = throws
-    update_main_image(image_path)
-    os.remove(image_path)
+    images=load_images(image_path)
+    update_main_image(images[0],True)
 
 
 def main():

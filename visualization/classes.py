@@ -9,13 +9,13 @@ class Throw:
         self.air_rolls = 0
         self.angle = 0
         self.distance = 0
-
+        self.grav_line=0
     def set_angle(self, angle):
         self.angle = round(math.degrees(angle),1)
 
-    def is_on_floor(self):
+    def is_on_floor(self,result):
         self.THROW_ON_FLOOR = True
-
+        self.grav_line = result
     def set_air_rolls(self,rolls):
         self.air_rolls = rolls
 
