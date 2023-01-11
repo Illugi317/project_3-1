@@ -66,9 +66,12 @@ def get_accel(df, index2):
         k = math.sqrt(df.accx[index1+x-1]**2+df.accy[index1+x-1]**2+df.accz[index1+x-1]**2)-9.80665
         acc.append(k)
         # time value is currently at 0.1 which mean the IMU would send the data 0.1 seconds apart, change this value if you have a more accurate time stamp.
-        x_counter = x_counter + 0.027   #TODO implement miliseconds from dataframe
+        to_seconds = df.ms[index1+x-1]
+        to_seconds = to_seconds/1000
+        x_counter = x_counter + to_seconds
         xaxis.append(x_counter)
     return acc, xaxis
+
 
 """
     :param df: entire imu data dataframe
