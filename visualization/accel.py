@@ -384,6 +384,7 @@ def detect_throws_from_data(path, name):
             else:
                 start_lane=lane[0]
                 end_lane=lane[-1]
+                saved_index=False
                 for i in range(len(flying)-1):
                     fly = flying[i]
                     next_fly = flying[i+1]
@@ -392,7 +393,10 @@ def detect_throws_from_data(path, name):
                     if start_lane>end_fly and next_start>end_lane:
                         saved_index = i+1
                         break
-                flying.insert(saved_index,lane)
+                if saved_index:
+                    flying.insert(saved_index,lane)
+                else:
+                    print("wtf")
         return flying
 
 
@@ -471,12 +475,16 @@ def detect_throws_from_data(path, name):
             throw = throws[i]
             line=throw.fly_line
             lower_bound=throw.time-20
+            if lower_bound<0:
+                lower_bound = 0
             grav=False
             if throw.THROW_ON_FLOOR:
                 upper_bound=throw.grav_line[-1]+20
                 grav=True
             else:
                 upper_bound=line[-1]+20
+            if upper_bound>len(acc_sum):
+                upper_bound=len(acc_sum)
             x = range(lower_bound,upper_bound)
             y = [acc_sum[i] for i in x]
             plt.figure()
@@ -499,7 +507,8 @@ def detect_throws_from_data(path, name):
     peak_times, peak_heights = detect_peaks(acc_sum, 8)
     print(f"I detected peaks + {len(peak_times)}")
     gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 1000)
-    flying_line = detect_lines(acc_sum, center = 1.5, sway = 1.5, limit = 400)
+    flying_line = detect_lines(acc_sum, center = 2, sway = 2, limit = 400)
+    flying_line = filter_lines(flying_line,1.5)
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
     rolls = detect_rolls(df)
 
@@ -509,9 +518,10 @@ def detect_throws_from_data(path, name):
 
     additional_fly_lines = find_flying_lines_from_rolling_lines(rolling_times)
 
+    additional_fly_lines =  filter_lines(additional_fly_lines,1.5)
     flying_line = extend_fly_lines(flying_line,additional_fly_lines)
 
-    flying_line = filter_lines(flying_line,1.5)
+
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
     throws = find_times_of_throw(flying_line, peak_times, 400)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
