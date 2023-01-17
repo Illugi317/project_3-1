@@ -389,7 +389,7 @@ def detect_throws_from_data(path, name):
                     next_fly = flying[i+1]
                     next_start = next_fly[0]
                     end_fly = fly[-1]
-                    if start_lane>end_fly and next_start<end_lane:
+                    if start_lane>end_fly and next_start>end_lane:
                         saved_index = i+1
                         break
                 flying.insert(saved_index,lane)
@@ -470,7 +470,7 @@ def detect_throws_from_data(path, name):
         for i in range(len(throws)):
             throw = throws[i]
             line=throw.fly_line
-            lower_bound=line[0]-20
+            lower_bound=throw.time-20
             grav=False
             if throw.THROW_ON_FLOOR:
                 upper_bound=throw.grav_line[-1]+20
@@ -510,6 +510,8 @@ def detect_throws_from_data(path, name):
     additional_fly_lines = find_flying_lines_from_rolling_lines(rolling_times)
 
     flying_line = extend_fly_lines(flying_line,additional_fly_lines)
+
+    flying_line = filter_lines(flying_line,1.5)
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
     throws = find_times_of_throw(flying_line, peak_times, 400)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
