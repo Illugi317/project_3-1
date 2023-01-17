@@ -86,7 +86,7 @@ def update_left(*args):
         text.pack()
         current_throw_title = var.get()
         if "Throw" in current_throw_title:
-            current_throw = current_throws[int(current_throw_title[-1]) - 1]
+            current_throw = current_throws[int(current_throw_title.replace("Throw_","")) - 1]
             throw_data = give_left_text(current_throw)
         else:
             throw_data = "This is the plot of the entire data from the IMU.\n" \
@@ -144,7 +144,7 @@ def update_left_text_and_image(*args):
     current_throw_title = var.get()
     import time
     if "Throw" in current_throw_title:
-        number= int(current_throw_title[-1])
+        number= int(current_throw_title.replace("Throw_",""))
         current_throw = current_throws[number - 1]
         throw_data = give_left_text(current_throw)
         update_main_image(images[number])

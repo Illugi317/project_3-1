@@ -373,11 +373,25 @@ def detect_throws_from_data(path, name):
         :return: Full list of both of the lines, without multiple lines being in the same place
         """
         total_lines=rolling_flying_lines
-        for f in flying_lines:
-            for r in rolling_flying_lines:
-                if all(item in r for item in f):
-                    continue
-            total_lines.append(f)
+        indexes=[]
+        rolls=[]
+        roll_indexes=[]
+        for i in range(len(flying_lines)):
+            fly_line = flying_lines[i]
+            for j in range(len(rolling_flying_lines)):
+                roll_line=rolling_flying_lines[j]
+                if all(item in roll_line for item in fly_line):
+                    indexes.append(i)
+                    rolls.append(roll_line)
+                    roll_indexes.append(j)
+
+        roll_indexes.reverse()
+        for i in range(len(indexes)):
+            flying_lines.pop(indexes[i])
+            flying_lines.insert(rolls[i])
+            rolling_flying_lines.pop(roll_indexes[i])
+
+
         return total_lines
 
 
@@ -431,7 +445,8 @@ def detect_throws_from_data(path, name):
                 upper_bound=line[-1]+20
             x = range(lower_bound,upper_bound)
             y = [acc_sum[i] for i in x]
-            plt.figure(i)
+            plt.figure()
+            plt.clf()
             plt.plot(x,y)
             name = f"Throw {i+1}"
             plt.title(name, fontsize=10)
@@ -459,7 +474,7 @@ def detect_throws_from_data(path, name):
 
     additional_fly_lines = find_flying_lines_from_rolling_lines(rolling_times)
 
-    flying_line = extend_fly_lines(flying_line,additional_fly_lines)
+   # flying_line = extend_fly_lines(flying_line,additional_fly_lines)
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
     throws = find_times_of_throw(flying_line, peak_times, 250)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
@@ -478,7 +493,8 @@ def detect_throws_from_data(path, name):
     get_distance_for_throws(throws)
 
     throw_paths = get_pictures_of_throws(throws)
-    plt.figure(len(throws))
+    plt.figure()
+    plt.clf()
     plt.plot(times, acc_sum)
     plt.title(name, fontsize=10)
     plt.xlabel("Data points received")
