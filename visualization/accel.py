@@ -360,12 +360,42 @@ def detect_throws_from_data(path, name):
         """
         total_lines=[]
         for r in roll_lines:
-            first=r[0]-20
-            second = r[-1]+20
+            first=r[0]-25
+            second = r[-1]+25
             acc_sum_here = acc_sum[first:second]
-            fly_lines = detect_lines(signal=acc_sum_here,center=2.5,sway=2.5,limit=300,first_point=first)
+            fly_lines = detect_lines(signal=acc_sum_here,center=3,sway=3,limit=300,first_point=first)
             total_lines.extend(fly_lines)
         return total_lines
+
+    def vals_between(list,start,end):
+        for i in list:
+            if i<start or i > end:
+                return False
+        return True
+
+    def add_in_order(flying,rolls):
+        for lane in rolls:
+            start_total = flying[0][0]
+            end_total = flying[-1][-1]
+            if lane[-1]<start_total:
+                flying.insert(0,lane)
+            elif lane[0]>end_total:
+                flying.append(lane)
+            else:
+                start_lane=lane[0]
+                end_lane=lane[-1]
+                for i in range(len(flying)-1):
+                    fly = flying[i]
+                    next_fly = flying[i+1]
+                    next_start = next_fly[0]
+                    end_fly = fly[-1]
+                    if start_lane>end_fly and next_start<end_lane:
+                        saved_index = i+1
+                        break
+                flying.insert(saved_index,lane)
+        return flying
+
+
     def extend_fly_lines(flying_lines,rolling_flying_lines):
         """
         :param flying_lines: Flying times detected normally
@@ -384,15 +414,19 @@ def detect_throws_from_data(path, name):
                     indexes.append(i)
                     rolls.append(roll_line)
                     roll_indexes.append(j)
+                elif all(item in fly_line for item in roll_line):
+                    roll_indexes.append(j)
 
         roll_indexes.reverse()
         for i in range(len(indexes)):
-            flying_lines.pop(indexes[i])
-            flying_lines.insert(rolls[i])
-            rolling_flying_lines.pop(roll_indexes[i])
+            index=indexes[i]
+            flying_lines.pop(index)
+            flying_lines.insert(index,rolls[i])
 
 
-        return total_lines
+        for i in roll_indexes:
+            rolling_flying_lines.pop(i)
+        return add_in_order(flying_lines,rolling_flying_lines)
 
 
     def get_distance_for_throws(throws):
@@ -446,7 +480,6 @@ def detect_throws_from_data(path, name):
             x = range(lower_bound,upper_bound)
             y = [acc_sum[i] for i in x]
             plt.figure()
-            plt.clf()
             plt.plot(x,y)
             name = f"Throw {i+1}"
             plt.title(name, fontsize=10)
@@ -458,6 +491,8 @@ def detect_throws_from_data(path, name):
                 plot_line(throw.grav_line,plt,'r')
             path_to_file = name + ".png"
             plt.savefig(path_to_file, dpi=200)
+            plt.clf()
+            plt.close()
             paths_list.append(path_to_file)
         return paths_list
 
@@ -474,9 +509,9 @@ def detect_throws_from_data(path, name):
 
     additional_fly_lines = find_flying_lines_from_rolling_lines(rolling_times)
 
-   # flying_line = extend_fly_lines(flying_line,additional_fly_lines)
+    flying_line = extend_fly_lines(flying_line,additional_fly_lines)
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
-    throws = find_times_of_throw(flying_line, peak_times, 250)
+    throws = find_times_of_throw(flying_line, peak_times, 400)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
     if len(throws) == 0:
         flying_line = detect_lines(acc_sum, 1.5, 1.5, 750)
@@ -494,7 +529,6 @@ def detect_throws_from_data(path, name):
 
     throw_paths = get_pictures_of_throws(throws)
     plt.figure()
-    plt.clf()
     plt.plot(times, acc_sum)
     plt.title(name, fontsize=10)
     plt.xlabel("Data points received")
@@ -506,7 +540,8 @@ def detect_throws_from_data(path, name):
         plot_line(line, plt,'y')
     path_to_file=name+".png"
     plt.savefig(path_to_file,dpi=200)
-
+    plt.clf()
+    plt.close()
     all_pictures=[path_to_file]
     all_pictures.extend(throw_paths)
     return all_pictures,throws
