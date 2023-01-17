@@ -46,7 +46,8 @@ def getangle(df, index):
     h = math.sqrt(x**2+y**2)
     v = (z*-1)-9.81
     #v = math.sqrt(v**2)
-    angle = math.atan(v/h)
+    #angle = math.atan(v/h)
+    angle = math.atan2(v, h)
     return angle
 """
     :param acc: dataframe of the acceleration
