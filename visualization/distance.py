@@ -6,8 +6,6 @@ from numpy import trapz
 import pandas as pd
 import sys
 
-#df1 = pd.read_csv(r'C:\Users\Stijn\Desktop\project_3-1-main\csv\throw1.csv', sep=",", encoding='utf-8')
-#df1 = pd.read_csv(r'C:\Users\Stijn\Desktop\project_3-1-main\csv\csv_distance\throw_distance_chest4.csv', sep=",", encoding='utf-8')
 """
     :param df: entire imu data dataframe
     :param index1: index of when the throw starts
@@ -19,13 +17,15 @@ def throw_distance(df, index_max, time_of_flight):
     y, x = get_accel(df, index_max)
     initial_vel = get_init_vel(y, x)
     angle = getangle(df, index_max)
-    print(angle)
     grav = 9.80665
-    time_of_flight = time_of_flight/1000
+    #time_of_flight = time_of_flight/1000
+    #height = (initial_vel * math.sin(angle)) * time_of_flight + (0.5 * grav * time_of_flight**2)
     height = (time_of_flight*(time_of_flight * grav - 2*initial_vel*math.sin(angle)))/2
-    print(height)
     distance = initial_vel * math.cos(angle)*(initial_vel*math.sin(angle) + math.sqrt((initial_vel * math.sin(angle))**2)+2*grav*height)
     distance = distance/grav
+    print("tof ", time_of_flight)
+    print("vel ", initial_vel)
+    #distance = (initial_vel * math.cos(angle) * time_of_flight) + (0.5 * grav * grav * time_of_flight**2)
     return distance
 
 """
@@ -46,7 +46,6 @@ def getangle(df, index):
 """
 def get_init_vel(acc, x):
     init_vel = trapz(acc, x=x)
-    print(init_vel)
     return init_vel
 """
     :param df: entire imu data dataframe
@@ -72,34 +71,43 @@ def get_accel(df, index2):
         xaxis.append(x_counter)
     return acc, xaxis
 
-
 """
     :param df: entire imu data dataframe
     :param index: index of throw at maximum acceleration
     :return:
 """
 
-def get_start_throw(df, index): #TODO change this
-    abs_current_accel = 100
-    index1 = index
 
-    current_accel = df.accx[index1] ** 2 + df.accy[index1] ** 2 + df.accz[index1]
-
-    while abs_current_accel > 9.80665:
-        last_accel = df.accx[index1] + df.accy[index1] + df.accz[index1]
-        abs_current_accel = math.sqrt(df.accx[index1] ** 2 + df.accy[index1] ** 2 + df.accz[index1] ** 2)
-        index1 = index1 - 1
-        current_accel = df.accx[index1] + df.accy[index1] + df.accz[index1]
-        if current_accel > 0 and last_accel < 0:
-            return index1 + 1
-        if current_accel < 0 and last_accel > 0:
-            return index1 + 1
-    return index1
-
-
-#distance = throw_distance(df1,325,36)
-
-#print(distance)
+def get_start_throw(df, index_max):
+    acc = []
+    x = []
+    index_start = index_max -1
+    g = -9.8
+    x_counter = 0.00
+    vel_dif = 1000
+    vel_old = 0
+    print(acc)
+    # Iterate through the previous indexes
+    while index_start > 0:
+        if ((df.accx[index_start] > g and df.accx[index_start-1] <= g) or (df.accx[index_start] < -g and df.accx[index_start-1] >= -g)) or ((df.accy[index_start] > g and df.accy[index_start-1] <= g) or (df.accy[index_start] < -g and df.accy[index_start-1] >= -g)) or ((df.accz[index_start] > g and df.accz[index_start-1] <= g) or (df.accz[index_start] < -g and df.accz[index_start-1] >= -g)):
+            # If so, return the current index as the start of the throw
+            return index_start
+        acc.append(
+            math.sqrt(df.accx[index_start] ** 2 + df.accy[index_start] ** 2 + df.accz[index_start] ** 2) - 9.80665)
+        to_seconds = df.ms[index_start]
+        to_seconds = to_seconds / 1000
+        x_counter = x_counter + to_seconds
+        x.append(x_counter)
+        if vel_dif <= 0.00001 and index_start + 3 < index_max:
+            print("start ", index_start)
+            print("end ", index_max)
+            return index_start
+        vel = get_init_vel(acc, x)
+        vel_dif = math.sqrt((vel_old - vel)**2)
+        vel_old = vel
+        # Update the current index
+        index_start -= 1
+    return index_start
 
 
 
