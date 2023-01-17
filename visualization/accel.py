@@ -211,8 +211,11 @@ def detect_throws_from_data(path, name):
             if get_time_between_points(closest_peak,start) <= peak_distance and get_time_between_points(end,next_peak) <=peak_distance:  # IF THE DISTANCE BETWEEN START OF LINE AND CLOSEST PEAK IS CLOSE ENOUGH BASED ON THE MEASURE WE DID
                 time_of_throw = closest_peak
                 acc_val = acc_sum[time_of_throw]
-                new_throw = Throw(acc_val,line,time_of_throw,get_time_between_points(time_of_throw,line[-1]))
-                throws.append(new_throw)
+                values_at_line=[acc_sum[i] for i in line]
+                mean_val = sum(values_at_line)/len(values_at_line)
+                if mean_val+2<acc_val:
+                    new_throw = Throw(acc_val,line,time_of_throw,get_time_between_points(time_of_throw,line[-1]))
+                    throws.append(new_throw)
                 if last_peak == -1:  # CHANGE DUMB VALUE TO NEXT PEAK IF EXISTS
                     last_peak = next_peak
 
@@ -363,7 +366,7 @@ def detect_throws_from_data(path, name):
             first=r[0]-25
             second = r[-1]+25
             acc_sum_here = acc_sum[first:second]
-            fly_lines = detect_lines(signal=acc_sum_here,center=3,sway=3,limit=300,first_point=first)
+            fly_lines = detect_lines(signal=acc_sum_here,center=4,sway=4,limit=300,first_point=first)
             total_lines.extend(fly_lines)
         return total_lines
 
