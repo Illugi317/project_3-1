@@ -16,6 +16,9 @@ import sys
 def throw_distance(df, index_max, time_of_flight):
     y, x = get_accel(df, index_max)
     initial_vel = get_init_vel(y, x)
+    a, ax = get_hor_acc(df, index_max)
+    hor_vel = get_init_vel(a, x)
+    print("hor vel ", hor_vel)
     angle = getangle(df, index_max)
     grav = 9.80665
     #height = (initial_vel * math.sin(angle)) * time_of_flight + (0.5 * grav * time_of_flight**2)
@@ -23,9 +26,10 @@ def throw_distance(df, index_max, time_of_flight):
     if height < 0:
         angle = math.pi - angle
         height = math.sqrt(height**2)
-    distance = initial_vel * math.cos(angle)*(initial_vel*math.sin(angle) + math.sqrt((initial_vel * math.sin(angle))**2)+2*grav*height)
-    distance = distance/grav
-    #distance = (initial_vel * math.cos(angle) * time_of_flight) + (0.5 * grav * grav * time_of_flight**2)
+    #distance = initial_vel * math.cos(angle)*(initial_vel*math.sin(angle) + math.sqrt((initial_vel * math.sin(angle))**2)+2*grav*height)
+    #distance = distance/grav
+    distance = (initial_vel * math.cos(angle) * time_of_flight) + (0.5 * grav * grav * time_of_flight**2)
+    distance = hor_vel * time_of_flight
     return distance
 
 """
@@ -77,6 +81,21 @@ def get_accel(df, index2):
         to_seconds = to_seconds/1000
         x_counter = x_counter + to_seconds
         xaxis.append(x_counter)
+    return acc, xaxis
+
+def get_hor_acc(df, index2):
+    acc = []
+    xaxis = []
+
+    index1 = get_start_throw(df, index2)
+    count = index2 - index1
+    x_counter = 0.00
+    for x in range(count):
+        x, y, z = get_linear_xyz(df, index1 + x -1)
+
+        k = math.sqrt(
+            x ** 2 + y ** 2)
+        acc.append(k)
     return acc, xaxis
 
 """
