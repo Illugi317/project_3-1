@@ -57,7 +57,37 @@ def detect_throws_from_data(path, name):
         # in x whose amplitude lies above 15.
         peaks, _ = find_peaks(data, height=h)
         return peaks, _
-
+    def detect_lines_alternative(signal, center, sway, time_limit,first_point=0,inter_diff = 0.5):
+        """
+        :param signal: The entire data we get from the accelerometer
+        :param center: The center value of lines we want to find
+        :param sway:  The allowed +/- values from center for lines we want to find
+        :param limit: The minimum time of line ( in miliseconds)
+        :return:
+        """
+        differences = [0]
+        for i in range(1,len(signal)):
+            differences.append(abs(signal[i]-signal[i-1]))
+        differences_binary = [0 if i<inter_diff else 1 for i in differences]
+        lines = []
+        current_line = []
+        for i in range(len(signal)):
+            point = differences_binary[i]
+            if point == 0:
+                 current_line.append(first_point+i)
+            elif get_time_of_line(current_line) > time_limit:
+                line_val = [signal[i-first_point] for i in current_line]
+                mean = sum(line_val)/len(line_val)
+                if mean<center+sway:
+                    lines.append(current_line)
+                    current_line = []
+                else:
+                    current_line = []
+            else:
+                current_line = []
+        if get_time_of_line(current_line) > time_limit:
+                lines.append(current_line)
+        return lines
     def detect_lines(signal, center, sway, limit,first_point=0):
         """
         :param signal: The entire data we get from the accelerometer
@@ -213,7 +243,7 @@ def detect_throws_from_data(path, name):
                 acc_val = acc_sum[time_of_throw]
                 values_at_line=[acc_sum[i] for i in line]
                 mean_val = sum(values_at_line)/len(values_at_line)
-                if mean_val+2<acc_val:
+                if mean_val+8<acc_val:
                     new_throw = Throw(acc_val,line,time_of_throw,get_time_between_points(time_of_throw,line[-1]))
                     throws.append(new_throw)
                 if last_peak == -1:  # CHANGE DUMB VALUE TO NEXT PEAK IF EXISTS
@@ -354,6 +384,8 @@ def detect_throws_from_data(path, name):
                     if len(current_line)>1:
                         lines.append(current_line)
                     current_line=[]
+        if len(current_line) > 1:
+            lines.append(current_line)
         return lines
 
     def find_flying_lines_from_rolling_lines(roll_lines):
@@ -366,7 +398,7 @@ def detect_throws_from_data(path, name):
             first=r[0]-25
             second = r[-1]+25
             acc_sum_here = acc_sum[first:second]
-            fly_lines = detect_lines(signal=acc_sum_here,center=4,sway=4,limit=300,first_point=first)
+            fly_lines = detect_lines_alternative(signal=acc_sum_here,center=3,sway=3,time_limit=300,first_point=first,inter_diff=1.5)
             total_lines.extend(fly_lines)
         return total_lines
 
@@ -443,7 +475,7 @@ def detect_throws_from_data(path, name):
             distance = throw_distance(df,time,tof)
             t.set_distance(distance)
 
-    def filter_lines(lines,maximal_derivation):
+    def filter_lines(lines,maximal_derivation,cut=False):
         """
         :param lines: gravity lines we detected
         :param maximal_derivation: Maximal deviation of points on the line from the center
@@ -456,7 +488,10 @@ def detect_throws_from_data(path, name):
         filtered = []
         for line in lines:
             length = len(line)
-            shorted_line = line[12:length-3]
+            if cut:
+                shorted_line = line[8:length-3]
+            else:
+                shorted_line = line[3:length-3]
             vals=[]
             for i in shorted_line:
                 vals.append(acc_sum[i])
@@ -507,15 +542,15 @@ def detect_throws_from_data(path, name):
             paths_list.append(path_to_file)
         return paths_list
 
-    peak_times, peak_heights = detect_peaks(acc_sum, 8)
+    peak_times, peak_heights = detect_peaks(acc_sum, 9)
     print(f"I detected peaks + {len(peak_times)}")
     gravity_lines = detect_lines(acc_sum, center=10, sway=2, limit = 1000)
-    flying_line = detect_lines(acc_sum, center = 2, sway = 2, limit = 400)
-    flying_line = filter_lines(flying_line,1.5)
+    flying_line = detect_lines_alternative(acc_sum, center = 2, sway = 2, time_limit = 350,inter_diff=0.8)
+
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
     rolls = detect_rolls(df)
-
-    gravity_lines = filter_lines(gravity_lines,0.5)
+    #flying_line = filter_lines(flying_line,2)
+    gravity_lines = filter_lines(gravity_lines,0.5,True)
 
     rolling_times = find_possible_times_of_intense_rolls(rolls,350)
 
