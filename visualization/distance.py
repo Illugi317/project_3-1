@@ -17,8 +17,13 @@ def throw_distance(df, index_max, time_of_flight):
     y, x = get_accel(df, index_max)
     initial_vel = get_init_vel(y, x)
     a, ax = get_hor_acc(df, index_max)
+    a2, ax2 = get_ver_acc(df, index_max)
+
     hor_vel = get_init_vel(a, x)
     print("hor vel ", hor_vel)
+    ver_vel = get_init_vel(a2, x)
+
+
     angle = getangle(df, index_max)
     grav = 9.80665
     #height = (initial_vel * math.sin(angle)) * time_of_flight + (0.5 * grav * time_of_flight**2)
@@ -45,13 +50,22 @@ def get_height(df,index_max, time_of_flight):
     height = (time_of_flight * (time_of_flight * grav - 2 * initial_vel * math.sin(angle))) / 2
     return height
 
-def getangle(df, index):
-    x, y, z = get_linear_xyz(df, index)
-    h = math.sqrt(x**2+y**2)
-    v = (z*-1)-9.81
-    #v = math.sqrt(v**2)
-    #angle = math.atan(v/h)
-    angle = math.atan2(v, h)
+def getangle(df, index_max):
+    y, x = get_accel(df, index_max)
+    a, ax = get_hor_acc(df, index_max)
+    a2, ax2 = get_ver_acc(df, index_max)
+
+    hor = get_init_vel(a, x)
+    ver = get_init_vel(a2, x)
+    hor = math.sqrt(hor**2)
+    ver = math.sqrt(ver ** 2)
+
+    hip2 = hor**2 + ver**2
+    hip2 = math.sqrt(hip2)
+    if hip2 == 0:
+        return 6.28319
+    length = hor/hip2
+    angle = math.acos(length)
     return angle
 """
     :param acc: dataframe of the acceleration
@@ -95,6 +109,20 @@ def get_hor_acc(df, index2):
 
         k = math.sqrt(
             x ** 2 + y ** 2)
+        acc.append(k)
+    return acc, xaxis
+
+def get_ver_acc(df, index2):
+    acc = []
+    xaxis = []
+
+    index1 = get_start_throw(df, index2)
+    count = index2 - index1
+    x_counter = 0.00
+    for x in range(count):
+        x, y, z = get_linear_xyz(df, index1 + x -1)
+
+        k = math.sqrt(z**2)
         acc.append(k)
     return acc, xaxis
 
