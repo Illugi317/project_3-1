@@ -237,7 +237,7 @@ def detect_throws_from_data(path, name):
                 if next_peak_is_part_of_first_peak(closest_peak,curr_next):
                     curr_next = get_next_peak(curr_next,peaks) # FAKE ASS NEXT PEAK FOUND
                 else:
-                    next_peak =curr_next
+                    next_peak = curr_next
                     next_is_good = False # LEGIT NEXT PEAK FOUND
             if closest_peak == last_peak or next_peak_is_part_of_first_peak(last_peak,closest_peak):  # IF THE NEXT PEAK OF THE LAST THROW IS THE SAME PEAK THAT WE DETECT NOW, IGNORE
                 continue  # THIS PART IS BASICALLY BOUNCE DETECTION

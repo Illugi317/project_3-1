@@ -31,7 +31,7 @@ def makeBasic():
     LeftBox = Canvas(root)
     LeftBox.grid(row=1, column=0, columnspan=6)
     text = Text(LeftBox, width=60, height=20)
-    text.pack()
+    text.grid(row=1,column=2,columnspan=2)
     text.config(state=DISABLED)
     give_legend()
     """
@@ -75,15 +75,21 @@ def update_left(*args):
     if main_array is not white:
         LeftBox.grid_forget()
         LeftBox = Canvas(width=200, height=700)
+        LeftBox.grid(row=1, column=0, columnspan=6)
+        buttonFilePick = Button(LeftBox, text="<<", command=lambda: go_left())
+        buttonFilePick.config(bg="#CFCF2F")
+        buttonFilePick.grid(row=0, column=2, columnspan=1)
+        buttonFilePick = Button(LeftBox, text=">>", command=lambda: go_right())
+        buttonFilePick.config(bg="#CFCF2F")
+        buttonFilePick.grid(row=0, column=3, columnspan=1)
         LeftTop = Label(text="Select the plots to inspect!")
         LeftTop.config(bg="#CFCF2F")
-        LeftTop.grid(row=0, column=0, columnspan=6)
+        LeftTop.grid(row=0, column=1, columnspan=6)
         List = give_list()
         List.config(bg="#CFCF2F")
-        List.pack()
-        LeftBox.grid(row=1, column=0, columnspan=6)
+        List.grid(row=0,column=2,columnspan=2)
         text = Text(LeftBox, width=60, height=20,wrap=WORD)
-        text.pack()
+        text.grid(row=1,column=2,columnspan=2)
         current_throw_title = var.get()
         if "Throw" in current_throw_title:
             current_throw = current_throws[int(current_throw_title.replace("Throw_","")) - 1]
@@ -102,7 +108,7 @@ def update_left(*args):
 def give_legend():
     global LeftBox
     picture_legend = Text(LeftBox, width=60, height=10, wrap=WORD)
-    picture_legend.pack()
+    picture_legend.grid(row=5,column=0,columnspan=6)
     legend = "How to interpret the plotted image? \n" \
              "The 'X' points are located at the time of each detected throw \n" \
              "The yellow lines are highlighting the times when we detected that the die was flying\n" \
@@ -133,7 +139,31 @@ def give_left_text(current_throw):
                  f"The die rolled about {current_throw.air_rolls} times in the air"
     return throw_data
 
-
+def go_right(*args):
+    global left_text, var, images, current_throws
+    current_throw_title = var.get()
+    if "Throw" in current_throw_title:
+        number = get_number_from_throw_title(current_throw_title)
+        if number == len(current_throws):
+            var.set("All IMU Data")
+        else:
+            var.set(f"Throw_{number +1}")
+    else:
+        var.set(f"Throw_1")
+def go_left(*args):
+    global left_text, var, images,current_throws
+    current_throw_title = var.get()
+    if "Throw" in current_throw_title:
+        number = get_number_from_throw_title(current_throw_title)
+        if number == 1:
+            var.set("All IMU Data")
+        else:
+            var.set(f"Throw_{number-1}")
+    else:
+        var.set(f"Throw_{len(current_throws)}")
+def get_number_from_throw_title(title):
+    number = int(title.replace("Throw_", ""))
+    return number
 def update_left_text_and_image(*args):
     """
     This method updates the text on the left column and main image  when changing the currently inspected throw
@@ -142,10 +172,10 @@ def update_left_text_and_image(*args):
     """
     global left_text, var,images
     current_throw_title = var.get()
-    import time
+
     if "Throw" in current_throw_title:
-        number= int(current_throw_title.replace("Throw_",""))
-        current_throw = current_throws[number - 1]
+        number = get_number_from_throw_title(current_throw_title)
+        current_throw = current_throws[number-1]
         throw_data = give_left_text(current_throw)
         update_main_image(images[number])
 
