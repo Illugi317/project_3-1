@@ -57,6 +57,7 @@ def detect_throws_from_data(path, name):
         # in x whose amplitude lies above 15.
         peaks, _ = find_peaks(data, height=h)
         return peaks, _
+
     def detect_lines_alternative(signal, center, sway, time_limit,first_point=0,inter_diff = 0.5):
         """
         :param signal: The entire data we get from the accelerometer
@@ -185,8 +186,12 @@ def detect_throws_from_data(path, name):
             return False
         first_val = acc_sum[first_peak]
         second_val = acc_sum[second_peak]
-        if second_val < first_val:   # If the second peak is smaller than first
-            left_bound = first_peak
+        if second_val <= first_val: # If the second peak is smaller than first
+            if get_time_between_points(first_peak,second_peak) < 150:
+                return True
+            else:
+                return False
+            """left_bound = first_peak
             right_bound = second_peak+1
             last_val = first_val
             values_to_ignore = get_peaks_between_including_second(first_peak,second_peak)
@@ -198,7 +203,7 @@ def detect_throws_from_data(path, name):
                         last_val=current_val
                     else:
                         return False
-            return True
+            return True"""
         else:
             return False
     def find_times_of_throw(fly_lines, peaks, peak_distance):
@@ -250,17 +255,6 @@ def detect_throws_from_data(path, name):
                     last_peak = next_peak
 
         return throws
-
-    def find_times_of_throw_individual(grav_lines, peaks):
-        """
-        Method for detecting throws when we have data of only 1 throw for sure ( I didnt use it in a while)
-        :param grav_lines: list of gravity lines
-        :param peaks: all detected peaks
-        :return: the time of throw
-        """
-        last_point = grav_lines[0][-1]
-        higher = [x for x in peaks if x >= last_point]
-        return min(higher)
 
     def find_higher(time,other_times):
         bigger = [x for x in other_times if x > time]
@@ -561,7 +555,7 @@ def detect_throws_from_data(path, name):
 
 
     print(f"I detected lines + {len(flying_line)} + {len(gravity_lines)}")
-    throws = find_times_of_throw(flying_line, peak_times, 400)
+    throws = find_times_of_throw(flying_line, peak_times, 500)
     peak_times, peak_heights = detect_peaks(acc_sum, 15)
     if len(throws) == 0:
         flying_line = detect_lines(acc_sum, 1.5, 1.5, 750)
