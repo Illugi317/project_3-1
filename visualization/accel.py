@@ -531,7 +531,7 @@ def detect_throws_from_data(path, name):
             plt.ylabel("Sum of absolute acceleration values")
             plot_line(line, plt, 'y')
             plot_point(throw.time, plt)
-            start_to_end = range(throw.start,throw.time)
+            start_to_end = range(throw.start,throw.time+1)
             plot_line(start_to_end,plt,'g')
             if grav:
                 plot_line(throw.grav_line,plt,'r')
