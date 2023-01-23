@@ -16,11 +16,10 @@ import sys
 def throw_distance(df, index_max, time_of_flight):
     y, x = get_accel(df, index_max)
     initial_vel = get_init_vel(y, x)
-    a, ax = get_hor_acc(df, index_max)
+    a, ax, start = get_hor_acc(df, index_max)
     a2, ax2 = get_ver_acc(df, index_max)
-
+    print("start ", start)
     hor_vel = get_init_vel(a, x)
-    print("hor vel ", hor_vel)
     ver_vel = get_init_vel(a2, x)
 
 
@@ -52,7 +51,7 @@ def get_height(df,index_max, time_of_flight):
 
 def getangle(df, index_max):
     y, x = get_accel(df, index_max)
-    a, ax = get_hor_acc(df, index_max)
+    a, ax, start = get_hor_acc(df, index_max)
     a2, ax2 = get_ver_acc(df, index_max)
 
     hor = get_init_vel(a, x)
@@ -105,12 +104,12 @@ def get_hor_acc(df, index2):
     count = index2 - index1
     x_counter = 0.00
     for x in range(count):
-        x, y, z = get_linear_xyz(df, index1 + x -1)
+        q, y, z = get_linear_xyz(df, index1 + x -1)
 
         k = math.sqrt(
-            x ** 2 + y ** 2)
+            q ** 2 + y ** 2)
         acc.append(k)
-    return acc, xaxis
+    return acc, xaxis, index1
 
 def get_ver_acc(df, index2):
     acc = []
@@ -141,27 +140,34 @@ def get_start_throw(df, index_max):
     x_counter = 0.00
     vel_dif = 1000
     vel_old = 0
+    check_counter = 0
+    final_index = 0
+    vel = 0
     # Iterate through the previous indexes
-    while index_start > 0:
-        if ((df.accx[index_start] > g and df.accx[index_start-1] <= g) or (df.accx[index_start] < -g and df.accx[index_start-1] >= -g)) or ((df.accy[index_start] > g and df.accy[index_start-1] <= g) or (df.accy[index_start] < -g and df.accy[index_start-1] >= -g)) or ((df.accz[index_start] > g and df.accz[index_start-1] <= g) or (df.accz[index_start] < -g and df.accz[index_start-1] >= -g)):
-            # If so, return the current index as the start of the throw
-            return index_start
-        acc.append(
-            math.sqrt(df.accx[index_start] ** 2 + df.accy[index_start] ** 2 + df.accz[index_start] ** 2) - 9.80665)
+    while index_start > 0 and check_counter < 2:
         to_seconds = df.ms[index_start]
         to_seconds = to_seconds / 1000
         x_counter = x_counter + to_seconds
         x.append(x_counter)
-        if vel_dif <= 0.00000001 and index_start + 3 < index_max:
-            print("start ", index_start)
-            print("end ", index_max)
-            return index_start
+        q, y, z = get_linear_xyz(df, index_start)
+        q1, y1, z1 = get_linear_xyz(df, index_start-1)
+        k = math.sqrt(
+            q ** 2 + y ** 2)
+        acc.append(k)
+        if (q > 0 and q1 < 0) or (y > 0 and y1 < 0) or (y < 0 and y1 > 0) or (q < 0 and q1 > 0):
+            final_index = index_start
+            check_counter += 1
+        elif vel_dif <= 0.0 and index_start + 3 < index_max:
+            final_index = index_start
+            check_counter += 1
+        else:
+            check_counter = 0
         vel = get_init_vel(acc, x)
         vel_dif = math.sqrt((vel_old - vel)**2)
         vel_old = vel
         # Update the current index
         index_start -= 1
-    return index_start
+    return final_index
 
 
 
