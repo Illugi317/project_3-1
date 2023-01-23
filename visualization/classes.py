@@ -10,6 +10,9 @@ class Throw:
         self.angle = 0
         self.distance = 0
         self.grav_line=0
+        self.start = time
+    def set_start(self,start):
+        self.start = start
     def set_angle(self, angle):
         self.angle = round(math.degrees(angle),1)
 

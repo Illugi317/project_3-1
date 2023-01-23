@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import statistics
 from classes import Throw,Roll
-from distance import getangle, throw_distance
+from distance import getangle, throw_distance, get_start_throw
 from rotations import detect_rolls
 DIR_ROOT = dirname(dirname(abspath(__file__)))
 DIR_VISUAL = join(DIR_ROOT,"visualization")
@@ -500,13 +500,17 @@ def detect_throws_from_data(path, name):
            # print(f"The maximal positive difference is {maximal-mean}")
             #print(f"The maximal negative difference is {mean-minimal}")
         return filtered
-
+    def get_start_of_throws(throws):
+        for t in throws:
+            peak = t.time
+            start = get_start_throw(df,peak)
+            t.set_start(start)
     def get_pictures_of_throws(throws):
         paths_list=[]
         for i in range(len(throws)):
             throw = throws[i]
             line=throw.fly_line
-            lower_bound=throw.time-20
+            lower_bound=throw.start-20
             if lower_bound<0:
                 lower_bound = 0
             grav=False
@@ -527,6 +531,8 @@ def detect_throws_from_data(path, name):
             plt.ylabel("Sum of absolute acceleration values")
             plot_line(line, plt, 'y')
             plot_point(throw.time, plt)
+            start_to_end = range(throw.start,throw.time)
+            plot_line(start_to_end,plt,'g')
             if grav:
                 plot_line(throw.grav_line,plt,'r')
             path_to_file = name + ".png"
@@ -570,7 +576,7 @@ def detect_throws_from_data(path, name):
     detect_throw_angle(throws)
 
     get_distance_for_throws(throws)
-
+    get_start_of_throws(throws)
     throw_paths = get_pictures_of_throws(throws)
     plt.figure()
     plt.plot(times, acc_sum)
