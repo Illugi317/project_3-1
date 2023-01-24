@@ -154,20 +154,20 @@ def get_start_throw(df, index_max):
         k = math.sqrt(
             q ** 2 + y ** 2)
         acc.append(k)
-        if (q > 0 and q1 < 0) or (y > 0 and y1 < 0) or (y < 0 and y1 > 0) or (q < 0 and q1 > 0):
+        #if (q > 0 and q1 < 0) or (y > 0 and y1 < 0) or (y < 0 and y1 > 0) or (q < 0 and q1 > 0):
+            #final_index = index_start
+            #check_counter += 1
+        if vel_dif <= 0.0001 and index_start + 3 < index_max:
             final_index = index_start
             check_counter += 1
-        elif vel_dif <= 0.0 and index_start + 3 < index_max:
-            final_index = index_start
-            check_counter += 1
-        else:
-            check_counter = 0
+       #else:
+            #check_counter = 0
         vel = get_init_vel(acc, x)
         vel_dif = math.sqrt((vel_old - vel)**2)
         vel_old = vel
         # Update the current index
         index_start -= 1
-    return final_index
+    return final_index + 1
 
 
 
