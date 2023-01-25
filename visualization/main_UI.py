@@ -34,18 +34,6 @@ def makeBasic():
     text.grid(row=1, column=2, columnspan=2)
     text.config(state=DISABLED)
     give_legend()
-    """
-    RightBox = Canvas(root)
-    RightBox.grid(row=1, column=6, columnspan=3)
-    StartText = Text(LeftBox, width=30)
-    StartText.insert(INSERT, "To start, load an image")
-    StartText.config(state=DISABLED)
-    StartText.pack()
-    StartText = Text(RightBox, width=30)
-    StartText.insert(INSERT, "To start, load an image")
-    StartText.config(state=DISABLED)
-    StartText.pack()
-    """
     buttonFilePick = Button(root, text="Load new IMU data!", command=lambda: load_file())
     buttonFilePick.config(bg="#CFCF2F")
     buttonFilePick.grid(row=2, column=7, columnspan=4)
@@ -105,9 +93,10 @@ def update_left(*args):
             current_throw = current_throws[int(current_throw_title.replace("Throw_", "")) - 1]
             throw_data = give_left_text(current_throw)
         else:
-            throw_data = f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n" \
-                         "This is the plot of the entire data from the IMU.\n" \
+            throw_data = "This is the plot of the entire data from the IMU.\n" \
                          "You can inspect the individual throws by selecting the drop-menu above"
+            #f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n" \
+
         text.insert(INSERT, throw_data)
         text.config(state=DISABLED)
         left_text = text
@@ -198,9 +187,10 @@ def update_left_text_and_image(*args):
         update_main_image(images[number])
 
     else:
-        throw_data = f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n" \
+        throw_data = \
                      "This is the plot of the entire data from the IMU.\n" \
                      "You can inspect the individual throws by selecting the drop-menu above"
+                   # f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n"
         update_main_image(images[0])
     left_text.config(state=NORMAL)
     left_text.delete("1.0", "end")
@@ -256,22 +246,6 @@ def resizing(image, width, height):
     """
     newSize = (width, height)
     return cv2.resize(image, newSize, interpolation=cv2.INTER_NEAREST)
-
-
-"""
-def update_main_image(filename):
-    
-    #Updates the main image with the given image   BTW ALL OF THESE IMAGE UPDATES ARE FROM PAST PROJECT,
-    # WE WILL ONLY HAVE ONE OF THESE RN IM TOO LAZY TO REFACTOR THEM SORRY
-   
-    global main_array
-    main_array = cv2.imread(filename)
-    main_array = cv2.cvtColor(main_array, cv2.COLOR_BGR2RGB)
-    main_array = resizing(main_array, 1080, 720)
-    update_image(main_array)
-    update_left()
-"""
-
 
 def update_main_image(image, init=False):
     global main_array

@@ -6,7 +6,7 @@ from os import makedirs
 import matplotlib.pyplot as plt
 import numpy as np
 import statistics
-from classes import Throw,Roll
+from classes import Throw
 from distance import getangle, throw_distance, get_start_throw
 from rotations import detect_rolls
 DIR_ROOT = dirname(dirname(abspath(__file__)))
@@ -191,19 +191,6 @@ def detect_throws_from_data(path, name):
                 return True
             else:
                 return False
-            """left_bound = first_peak
-            right_bound = second_peak+1
-            last_val = first_val
-            values_to_ignore = get_peaks_between_including_second(first_peak,second_peak)
-              # If the entire slope has a downwards trend
-            for i in range(right_bound-left_bound):
-                current_val = acc_sum[left_bound+i]
-                if left_bound+i not in values_to_ignore:
-                    if last_val >= current_val:   # If all values on the slope are smaller than first
-                        last_val=current_val
-                    else:
-                        return False
-            return True"""
         else:
             return False
     def find_times_of_throw(fly_lines, peaks, peak_distance):
@@ -235,7 +222,7 @@ def detect_throws_from_data(path, name):
             next_is_good = True
             while next_is_good:
                 if next_peak_is_part_of_first_peak(closest_peak,curr_next):
-                    curr_next = get_next_peak(curr_next,peaks) # FAKE ASS NEXT PEAK FOUND
+                    curr_next = get_next_peak(curr_next,peaks) # ERROR PEAKFOUND
                 else:
                     next_peak = curr_next
                     next_is_good = False # LEGIT NEXT PEAK FOUND
@@ -320,21 +307,17 @@ def detect_throws_from_data(path, name):
                 t.is_on_floor(result)
 
 
-    def analyze_lines(points, line, std_limit):
-        """
-        :param points: Every point of acceleration value (y)
-        :param line: A line containing every time(x) of point in it
-        :param std_limit: Allowed maximal standard derivation in values in line
-        :return:
-        """
-        values = []
-        for i in line:
-            values.append(points[i])
-        std = statistics.stdev(values)
-        if std < std_limit:
-            return True
-        else:
-            return False
+    def analyze_lines(lines, std_limit):
+
+        good_lines = []
+        for line in lines:
+            values=[]
+            for i in line:
+                values.append(acc_sum[i])
+            std = statistics.stdev(values)
+            if std < std_limit:
+                good_lines.append(line)
+        return good_lines
 
     def get_time_of_line(line):
         """
@@ -435,7 +418,6 @@ def detect_throws_from_data(path, name):
         :param rolling_flying_lines: Flying times detected during the cube rolling
         :return: Full list of both of the lines, without multiple lines being in the same place
         """
-        total_lines=rolling_flying_lines
         indexes=[]
         rolls=[]
         roll_indexes=[]
@@ -469,11 +451,11 @@ def detect_throws_from_data(path, name):
             distance = throw_distance(df,time,tof)
             t.set_distance(distance)
 
-    def filter_lines(lines,maximal_derivation,cut=False):
+    def filter_lines(lines,maximal_deviation,cut=False):
         """
         :param lines: gravity lines we detected
         :param maximal_derivation: Maximal deviation of points on the line from the center
-        ( with exclusion of first 12 points and last 3)
+        ( with exclusion of first 3 points and last 3)
         Why were they excluded -> when the cube lands it has a bit of shaky data when it stops moving,
         which was usually also included in the gravity line
         And we want to only analize the data when it is 100% stopped moving
@@ -494,11 +476,8 @@ def detect_throws_from_data(path, name):
             minimal = min(vals)
             positive_diff = maximal-mean
             minus_diff = mean-minimal
-            if positive_diff < maximal_derivation and minus_diff < maximal_derivation:
+            if positive_diff < maximal_deviation and minus_diff < maximal_deviation:
                 filtered.append(line)
-            #print(f" Mean value of line is at {mean}")
-           # print(f"The maximal positive difference is {maximal-mean}")
-            #print(f"The maximal negative difference is {mean-minimal}")
         return filtered
     def get_start_of_throws(throws):
         for t in throws:
@@ -556,7 +535,7 @@ def detect_throws_from_data(path, name):
 
     additional_fly_lines = find_flying_lines_from_rolling_lines(rolling_times)
 
-    additional_fly_lines =  filter_lines(additional_fly_lines,1.5)
+    additional_fly_lines =  analyze_lines(additional_fly_lines,1.5)
     flying_line = extend_fly_lines(flying_line,additional_fly_lines)
 
 
