@@ -31,7 +31,7 @@ def makeBasic():
     LeftBox = Canvas(root)
     LeftBox.grid(row=1, column=0, columnspan=6)
     text = Text(LeftBox, width=60, height=20)
-    text.grid(row=1,column=2,columnspan=2)
+    text.grid(row=1, column=2, columnspan=2)
     text.config(state=DISABLED)
     give_legend()
     """
@@ -71,7 +71,7 @@ def update_left(*args):
     """
     This method updates the left column when loading a new data file
     """
-    global var, LeftBox, main_array, white, current_throws, left_text
+    global var, LeftBox, main_array, white, current_throws, left_text, mean_throws_angle, angle_ci
     if main_array is not white:
         LeftBox.grid_forget()
         LeftBox = Canvas(width=200, height=700)
@@ -87,15 +87,26 @@ def update_left(*args):
         LeftTop.grid(row=0, column=1, columnspan=6)
         List = give_list()
         List.config(bg="#CFCF2F")
-        List.grid(row=0,column=2,columnspan=2)
-        text = Text(LeftBox, width=60, height=20,wrap=WORD)
-        text.grid(row=1,column=2,columnspan=2)
+        List.grid(row=0, column=2, columnspan=2)
+        text = Text(LeftBox, width=60, height=20, wrap=WORD)
+        text.grid(row=1, column=2, columnspan=2)
         current_throw_title = var.get()
+
+        mean_throws_angle = 0
+        throws_angles = []
+        for throws in current_throws:
+            throws_angles.append(throws.angle)
+        mean_throws_angle = np.mean(throws_angles)
+        angle_ci = 1.96 * np.std(throws_angles) / np.sqrt(len(throws_angles))
+        mean_throws_angle = np.round(mean_throws_angle, 2)
+        angle_ci = np.round(angle_ci, 2)
+
         if "Throw" in current_throw_title:
-            current_throw = current_throws[int(current_throw_title.replace("Throw_","")) - 1]
+            current_throw = current_throws[int(current_throw_title.replace("Throw_", "")) - 1]
             throw_data = give_left_text(current_throw)
         else:
-            throw_data = "This is the plot of the entire data from the IMU.\n" \
+            throw_data = f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n" \
+                         "This is the plot of the entire data from the IMU.\n" \
                          "You can inspect the individual throws by selecting the drop-menu above"
         text.insert(INSERT, throw_data)
         text.config(state=DISABLED)
@@ -108,7 +119,7 @@ def update_left(*args):
 def give_legend():
     global LeftBox
     picture_legend = Text(LeftBox, width=60, height=10, wrap=WORD)
-    picture_legend.grid(row=5,column=0,columnspan=6)
+    picture_legend.grid(row=5, column=0, columnspan=6)
     legend = "How to interpret the plotted image? \n" \
              "The 'X' points are located at the time of each detected throw \n" \
              "The yellow lines are highlighting the times when we detected that the die was flying\n" \
@@ -122,22 +133,23 @@ def give_left_text(current_throw):
     This method returns the text containing all data we have on a throw
     """
     angle = current_throw.angle
-    if angle<5: #above
+    if angle < 5:  # above
         throw = "overhead throw"
-    elif angle<35: #chest
+    elif angle < 35:  # chest
 
         throw = "chest throw"
-    else:  #under
+    else:  # under
         throw = "under-throw"
     throw_data = f"The throw happened at time index {current_throw.time} \n" \
                  f"The maximal acceleration value achieved was {current_throw.peak_val} \n" \
                  f"The throw {'did' if current_throw.THROW_ON_FLOOR else 'did not'} land on the floor \n" \
                  f"The time of flight was equal to {current_throw.tof} seconds \n" \
-                 f"The angle of the final acceleration point was about {current_throw.angle} degrees \n"\
-                 F"Based on the angle of acceleration, we suspect that the throw was an {throw}\n"\
-                 f"The die flew about {current_throw.distance} meters\n"\
+                 f"The angle of the final acceleration point was about {current_throw.angle} degrees \n" \
+                 F"Based on the angle of acceleration, we suspect that the throw was an {throw}\n" \
+                 f"The die flew about {current_throw.distance} meters\n" \
                  f"The die rolled about {current_throw.air_rolls} times in the air"
     return throw_data
+
 
 def go_right(*args):
     global left_text, var, images, current_throws
@@ -147,41 +159,48 @@ def go_right(*args):
         if number == len(current_throws):
             var.set("All IMU Data")
         else:
-            var.set(f"Throw_{number +1}")
+            var.set(f"Throw_{number + 1}")
     else:
         var.set(f"Throw_1")
+
+
 def go_left(*args):
-    global left_text, var, images,current_throws
+    global left_text, var, images, current_throws
     current_throw_title = var.get()
     if "Throw" in current_throw_title:
         number = get_number_from_throw_title(current_throw_title)
         if number == 1:
             var.set("All IMU Data")
         else:
-            var.set(f"Throw_{number-1}")
+            var.set(f"Throw_{number - 1}")
     else:
         var.set(f"Throw_{len(current_throws)}")
+
+
 def get_number_from_throw_title(title):
     number = int(title.replace("Throw_", ""))
     return number
+
+
 def update_left_text_and_image(*args):
     """
     This method updates the text on the left column and main image  when changing the currently inspected throw
     :param args:
     :return:
     """
-    global left_text, var,images
+    global left_text, var, images
     current_throw_title = var.get()
 
     if "Throw" in current_throw_title:
         number = get_number_from_throw_title(current_throw_title)
-        current_throw = current_throws[number-1]
+        current_throw = current_throws[number - 1]
         throw_data = give_left_text(current_throw)
         update_main_image(images[number])
 
     else:
-        throw_data = "This is the plot of the entire data from the IMU.\n"\
-                    "You can inspect the individual throws by selecting the drop-menu above"
+        throw_data = f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n" \
+                     "This is the plot of the entire data from the IMU.\n" \
+                     "You can inspect the individual throws by selecting the drop-menu above"
         update_main_image(images[0])
     left_text.config(state=NORMAL)
     left_text.delete("1.0", "end")
@@ -238,6 +257,7 @@ def resizing(image, width, height):
     newSize = (width, height)
     return cv2.resize(image, newSize, interpolation=cv2.INTER_NEAREST)
 
+
 """
 def update_main_image(filename):
     
@@ -251,21 +271,26 @@ def update_main_image(filename):
     update_image(main_array)
     update_left()
 """
-def update_main_image(image,init=False):
+
+
+def update_main_image(image, init=False):
     global main_array
-    main_array=image
+    main_array = image
     update_image(image)
     if init:
         update_left()
+
+
 def load_images(paths):
-    images=[]
+    images = []
     for p in paths:
         array = cv2.imread(p)
-        array = cv2.cvtColor(array,cv2.COLOR_BGR2RGB)
-        array = resizing(array,1080,720)
+        array = cv2.cvtColor(array, cv2.COLOR_BGR2RGB)
+        array = resizing(array, 1080, 720)
         images.append(array)
         os.remove(p)
     return images
+
 
 def load_file():
     """
@@ -275,8 +300,8 @@ def load_file():
     filename = filedialog.askopenfilename(initialdir=DIR_ROOT, title="Select the IMU data csv!")
     image_path, throws = detect_throws_from_data(filename, "throw_data")
     current_throws = throws
-    images=load_images(image_path)
-    update_main_image(images[0],True)
+    images = load_images(image_path)
+    update_main_image(images[0], True)
 
 
 def main():
