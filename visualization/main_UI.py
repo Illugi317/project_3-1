@@ -95,7 +95,7 @@ def update_left(*args):
         else:
             throw_data = "This is the plot of the entire data from the IMU.\n" \
                          "You can inspect the individual throws by selecting the drop-menu above"
-            #f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n" \
+            # f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n" \
 
         text.insert(INSERT, throw_data)
         text.config(state=DISABLED)
@@ -188,9 +188,9 @@ def update_left_text_and_image(*args):
 
     else:
         throw_data = \
-                     "This is the plot of the entire data from the IMU.\n" \
-                     "You can inspect the individual throws by selecting the drop-menu above"
-                   # f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n"
+            "This is the plot of the entire data from the IMU.\n" \
+            "You can inspect the individual throws by selecting the drop-menu above"
+        # f"The mean angle of throws at release is {mean_throws_angle} +- {angle_ci}\n"
         update_main_image(images[0])
     left_text.config(state=NORMAL)
     left_text.delete("1.0", "end")
@@ -246,6 +246,7 @@ def resizing(image, width, height):
     """
     newSize = (width, height)
     return cv2.resize(image, newSize, interpolation=cv2.INTER_NEAREST)
+
 
 def update_main_image(image, init=False):
     global main_array
