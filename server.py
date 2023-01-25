@@ -11,4 +11,5 @@ while True:
     el = time.time() - start
     fm = message[2:-1] + f",{round(el*1000,2)}"
     with open('csv/csv_new_throws/throw-demo.csv', 'a') as f:
+        f.write("orix,oriy,oriz,gyrox,gyroy,gyroz,linerx,linery,linerz,accx,accy,accz,gravx,gravy,gravz,temp,ms\n")
         f.write(fm + "\n")
