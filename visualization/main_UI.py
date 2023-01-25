@@ -107,13 +107,15 @@ def update_left(*args):
 
 def give_legend():
     global LeftBox
-    picture_legend = Text(LeftBox, width=60, height=10, wrap=WORD)
+    picture_legend = Text(LeftBox, width=60, height=12, wrap=WORD)
     picture_legend.grid(row=5, column=0, columnspan=6)
-    legend = "How to interpret the plotted image? \n" \
+    legend = "How to interpret the plotted image? \n\n" \
              "The 'X' points are located at the time of each detected throw \n" \
              "The yellow lines are highlighting the times when we detected that the die was flying\n" \
              "The red lines are highlighting the times when we detected that the die was not moving, " \
-             "most probably laying on the floor \n"
+             "most probably laying on the floor \n"\
+             "The green lines represent the times from the beginning of the throw motion to the moment that the die"\
+             " was released by the person throwing it."
     picture_legend.insert(INSERT, legend)
 
 
